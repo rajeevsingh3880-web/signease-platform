@@ -60,19 +60,7 @@ public class EmailService {
      * 3. Falls back to Spring JavaMailSender (SMTP Port 587/465)
      */
     public boolean dispatchEmail(String toEmail, String subject, String plainText, String html) {
-        // Option A: Resend REST API over HTTPS (Port 443)
-        if (resendApiKey != null && !resendApiKey.isBlank()) {
-            boolean sent = sendViaResend(toEmail, subject, html, plainText);
-            if (sent) return true;
-        }
-
-        // Option B: Brevo REST API over HTTPS (Port 443)
-        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
-            boolean sent = sendViaBrevo(toEmail, subject, html, plainText);
-            if (sent) return true;
-        }
-
-        // Option C: Standard JavaMailSender (SMTP)
+        // Option 1: Standard Gmail SMTP (port 587)
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             boolean isHtml = (html != null && !html.isBlank());
@@ -88,12 +76,25 @@ public class EmailService {
             }
 
             mailSender.send(mimeMessage);
-            log.info("Email successfully dispatched via SMTP to {}", toEmail);
+            log.info("Email successfully dispatched via Gmail SMTP to {}", toEmail);
             return true;
         } catch (Exception e) {
-            log.warn("SMTP email dispatch failed for {}: {}. Note: Render Free Tier strictly blocks outbound SMTP ports 25, 465, 587. Provide RESEND_API_KEY in Render environment variables for HTTPS delivery.", toEmail, e.getMessage());
-            return false;
+            log.warn("Gmail SMTP dispatch failed for {}: {}", toEmail, e.getMessage());
         }
+
+        // Option 2: Resend HTTPS API (if configured)
+        if (resendApiKey != null && !resendApiKey.isBlank()) {
+            boolean sent = sendViaResend(toEmail, subject, html, plainText);
+            if (sent) return true;
+        }
+
+        // Option 3: Brevo HTTPS API (if configured)
+        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
+            boolean sent = sendViaBrevo(toEmail, subject, html, plainText);
+            if (sent) return true;
+        }
+
+        return false;
     }
 
     private boolean sendViaResend(String toEmail, String subject, String html, String plainText) {

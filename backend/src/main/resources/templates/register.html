@@ -43,14 +43,38 @@
                 <input type="text" th:field="*{organizationName}" class="form-control" placeholder="Acme Technologies Pvt Ltd" required>
             </div>
 
-            <!-- Email Address -->
+            <!-- Email Address with Get OTP Button -->
             <div class="mb-3">
                 <label class="form-label small fw-semibold">Work Email Address *</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-regular fa-envelope"></i></span>
-                    <input type="email" th:field="*{email}" class="form-control border-start-0" placeholder="rajesh@acme.com" required>
+                    <input type="email" th:field="*{email}" id="emailInput" class="form-control border-start-0" placeholder="rajesh@acme.com" required>
+                    <button type="button" class="btn btn-primary fw-semibold px-3" id="sendOtpBtn">
+                        <i class="fa-solid fa-paper-plane me-1"></i> Get OTP
+                    </button>
                 </div>
                 <div class="text-danger small" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                <div id="otpStatusMsg" class="small mt-1"></div>
+            </div>
+
+            <!-- Email Verification OTP Field -->
+            <div class="mb-3 p-3 bg-light rounded-3 border" id="otpGroup">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-semibold mb-0">
+                        <i class="fa-solid fa-shield-halved text-primary me-1"></i> Enter 6-Digit Email OTP *
+                    </label>
+                    <span id="otpVerifiedBadge" class="badge bg-success-subtle text-success d-none">
+                        <i class="fa-solid fa-circle-check me-1"></i> Email Verified
+                    </span>
+                </div>
+                <div class="input-group">
+                    <input type="text" th:field="*{otpCode}" id="otpCodeInput" class="form-control font-monospace text-center fs-5 fw-bold" placeholder="------" maxlength="6" required>
+                    <button type="button" class="btn btn-outline-success fw-semibold" id="verifyOtpBtn">Verify Code</button>
+                </div>
+                <div class="form-text small text-muted" id="otpHelperText">
+                    Click <strong>Get OTP</strong> to receive a 6-digit verification code in your email inbox.
+                </div>
+                <div class="text-danger small" th:if="${#fields.hasErrors('otpCode')}" th:errors="*{otpCode}"></div>
             </div>
 
             <div class="mb-3">
@@ -89,5 +113,140 @@
         </div>
     </div>
 
+    <script>
+        const sendOtpBtn = document.getElementById('sendOtpBtn');
+        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+        const emailInput = document.getElementById('emailInput');
+        const otpCodeInput = document.getElementById('otpCodeInput');
+        const otpStatusMsg = document.getElementById('otpStatusMsg');
+        const otpVerifiedBadge = document.getElementById('otpVerifiedBadge');
+        const otpHelperText = document.getElementById('otpHelperText');
+        const regForm = document.getElementById('regForm');
+        const createAccountBtn = document.getElementById('createAccountBtn');
+
+        let isVerified = false;
+        let cooldownTimer = null;
+
+        function setStatus(msg, isError) {
+            otpStatusMsg.innerHTML = `<span class="${isError ? 'text-danger' : 'text-success'} fw-medium">${msg}</span>`;
+        }
+
+        sendOtpBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            if (!email || !email.includes('@')) {
+                setStatus('Please enter a valid email address first.', true);
+                emailInput.focus();
+                return;
+            }
+
+            sendOtpBtn.disabled = true;
+            sendOtpBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
+            setStatus('Sending verification code to your email...', false);
+
+            try {
+                const res = await fetch('/api/v1/auth/send-registration-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email })
+                });
+                const data = await res.json();
+                if (!res.ok || data.success === false) {
+                    throw new Error(data.error || 'Failed to send verification code.');
+                }
+
+                setStatus('Verification code sent to ' + email + '! Please check your inbox and spam folder.', false);
+                otpCodeInput.focus();
+
+                // 60-second cooldown timer
+                let timeLeft = 60;
+                sendOtpBtn.innerHTML = `Resend (${timeLeft}s)`;
+                if (cooldownTimer) clearInterval(cooldownTimer);
+                cooldownTimer = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        clearInterval(cooldownTimer);
+                        sendOtpBtn.disabled = false;
+                        sendOtpBtn.innerHTML = '<i class="fa-solid fa-rotate-right me-1"></i> Resend OTP';
+                    } else {
+                        sendOtpBtn.innerHTML = `Resend (${timeLeft}s)`;
+                    }
+                }, 1000);
+            } catch (err) {
+                setStatus(err.message, true);
+                sendOtpBtn.disabled = false;
+                sendOtpBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Get OTP';
+            }
+        });
+
+        verifyOtpBtn.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            const otp = otpCodeInput.value.trim();
+            if (!otp || otp.length !== 6) {
+                setStatus('Please enter the 6-digit verification code sent to your email.', true);
+                otpCodeInput.focus();
+                return;
+            }
+
+            verifyOtpBtn.disabled = true;
+            verifyOtpBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            try {
+                const res = await fetch('/api/v1/auth/verify-registration-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: email, otpCode: otp })
+                });
+                const data = await res.json();
+                if (!res.ok || data.success === false) {
+                    throw new Error(data.error || 'Invalid or expired verification code.');
+                }
+
+                isVerified = true;
+                verifyOtpBtn.className = 'btn btn-success fw-semibold';
+                verifyOtpBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Verified';
+                otpVerifiedBadge.classList.remove('d-none');
+                otpHelperText.className = 'form-text small text-success fw-semibold';
+                otpHelperText.innerText = 'Email verified successfully!';
+                setStatus('Email authenticated successfully! Click Create Free Account to finish.', false);
+            } catch (err) {
+                setStatus(err.message, true);
+                verifyOtpBtn.disabled = false;
+                verifyOtpBtn.innerText = 'Verify Code';
+            }
+        });
+
+        regForm.addEventListener('submit', async (e) => {
+            const otp = otpCodeInput.value.trim();
+            if (!otp || otp.length !== 6) {
+                e.preventDefault();
+                setStatus('Please enter the 6-digit email verification code.', true);
+                otpCodeInput.focus();
+                return;
+            }
+
+            if (!isVerified) {
+                e.preventDefault();
+                createAccountBtn.disabled = true;
+                createAccountBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying & Creating Account...';
+                try {
+                    const res = await fetch('/api/v1/auth/verify-registration-otp', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: emailInput.value.trim(), otpCode: otp })
+                    });
+                    const data = await res.json();
+                    if (!res.ok || data.success === false) {
+                        throw new Error(data.error || 'Invalid or expired verification code.');
+                    }
+                    isVerified = true;
+                    regForm.submit();
+                } catch (err) {
+                    createAccountBtn.disabled = false;
+                    createAccountBtn.innerText = 'Create Free Account';
+                    setStatus(err.message, true);
+                }
+            }
+        });
+    </script>
 </body>
 </html>

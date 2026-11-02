@@ -27,4 +27,7 @@ public class RegisterRequest {
     private String organizationName;
 
     private String phone;
+
+    @NotBlank(message = "Email verification OTP is required")
+    private String otpCode;
 }

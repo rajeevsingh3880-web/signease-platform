@@ -8,6 +8,8 @@ import com.esign.platform.model.User;
 import com.esign.platform.repository.OrganizationRepository;
 import com.esign.platform.repository.UserRepository;
 import com.esign.platform.security.JwtTokenProvider;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -18,9 +20,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -32,12 +37,92 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+    private final EmailService emailService;
+
+    private final SecureRandom secureRandom = new SecureRandom();
+
+    @Data
+    @AllArgsConstructor
+    public static class RegistrationOtpEntry {
+        private String otp;
+        private LocalDateTime expiry;
+        private int attempts;
+        private boolean verified;
+    }
+
+    private final Map<String, RegistrationOtpEntry> registrationOtpStore = new ConcurrentHashMap<>();
+
+    public String sendRegistrationOtp(String email) {
+        if (email == null || email.isBlank() || !email.contains("@")) {
+            throw new IllegalArgumentException("A valid email address is required");
+        }
+        String cleanEmail = email.trim().toLowerCase();
+        if (userRepository.existsByEmail(cleanEmail)) {
+            throw new IllegalArgumentException("An account with this email already exists: " + cleanEmail);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        RegistrationOtpEntry existing = registrationOtpStore.get(cleanEmail);
+        if (existing != null && existing.getExpiry().isAfter(now) && !existing.isVerified()) {
+            if (existing.getExpiry().isAfter(now.plusMinutes(9).plusSeconds(15))) {
+                log.info("Duplicate registration OTP request blocked for {} within cooldown. Reusing existing code.", cleanEmail);
+                return existing.getOtp();
+            }
+        }
+
+        int code = 100000 + secureRandom.nextInt(900000);
+        String otp = String.valueOf(code);
+
+        registrationOtpStore.put(cleanEmail, new RegistrationOtpEntry(otp, now.plusMinutes(10), 0, false));
+        emailService.sendRegistrationOtpCode(cleanEmail, otp);
+        return otp;
+    }
+
+    public boolean verifyRegistrationOtp(String email, String inputOtp) {
+        if (email == null || inputOtp == null) return false;
+        String cleanEmail = email.trim().toLowerCase();
+        RegistrationOtpEntry entry = registrationOtpStore.get(cleanEmail);
+
+        if (entry == null) {
+            throw new IllegalArgumentException("No verification code found for this email. Please request a new OTP.");
+        }
+        if (entry.getExpiry().isBefore(LocalDateTime.now())) {
+            registrationOtpStore.remove(cleanEmail);
+            throw new IllegalArgumentException("Verification code has expired. Please request a new code.");
+        }
+        if (entry.getAttempts() >= 5) {
+            registrationOtpStore.remove(cleanEmail);
+            throw new IllegalArgumentException("Maximum verification attempts exceeded. Please request a new code.");
+        }
+
+        entry.setAttempts(entry.getAttempts() + 1);
+
+        if (!entry.getOtp().equalsIgnoreCase(inputOtp.trim())) {
+            throw new IllegalArgumentException("Invalid verification code. Please check your email and try again.");
+        }
+
+        entry.setVerified(true);
+        return true;
+    }
 
     @Transactional
     public User registerUser(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("An account with this email already exists: " + request.getEmail());
+        String cleanEmail = request.getEmail().trim().toLowerCase();
+        if (userRepository.existsByEmail(cleanEmail)) {
+            throw new IllegalArgumentException("An account with this email already exists: " + cleanEmail);
         }
+
+        // Validate email OTP authentication
+        RegistrationOtpEntry entry = registrationOtpStore.get(cleanEmail);
+        if (request.getOtpCode() == null || request.getOtpCode().isBlank()) {
+            throw new IllegalArgumentException("Email verification code (OTP) is required. Please click Get OTP to receive your code.");
+        }
+        if (entry == null || !entry.getOtp().equalsIgnoreCase(request.getOtpCode().trim()) || entry.getExpiry().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Invalid or expired email verification code. Please request a new OTP.");
+        }
+
+        // Remove OTP entry once successfully verified
+        registrationOtpStore.remove(cleanEmail);
 
         // Create or assign organization
         String orgName = (request.getOrganizationName() != null && !request.getOrganizationName().isBlank())
@@ -53,12 +138,13 @@ public class AuthService {
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
-                .email(request.getEmail().trim().toLowerCase())
+                .email(cleanEmail)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .phone(request.getPhone())
                 .organization(savedOrg)
                 .role(User.Role.SIGNER)
                 .enabled(true)
+                .emailVerified(true)
                 .build();
 
         return userRepository.save(user);

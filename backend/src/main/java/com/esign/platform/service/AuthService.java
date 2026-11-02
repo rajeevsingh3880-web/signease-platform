@@ -112,6 +112,18 @@ public class AuthService {
             throw new IllegalArgumentException("An account with this email already exists: " + cleanEmail);
         }
 
+        // Validate email OTP authentication
+        RegistrationOtpEntry entry = registrationOtpStore.get(cleanEmail);
+        if (request.getOtpCode() == null || request.getOtpCode().isBlank()) {
+            throw new IllegalArgumentException("Email verification code (OTP) is required. Please click Get OTP to receive your code.");
+        }
+        if (entry == null || !entry.getOtp().equalsIgnoreCase(request.getOtpCode().trim()) || entry.getExpiry().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Invalid or expired email verification code. Please request a new OTP.");
+        }
+
+        // Remove OTP entry once successfully verified
+        registrationOtpStore.remove(cleanEmail);
+
         // Create or assign organization
         String orgName = (request.getOrganizationName() != null && !request.getOrganizationName().isBlank())
                 ? request.getOrganizationName()

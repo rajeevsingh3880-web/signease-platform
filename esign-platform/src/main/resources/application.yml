@@ -56,7 +56,7 @@ app:
     dir: ./uploads
   base-url: ${APP_BASE_URL:http://localhost:8080}
   security:
-    expose-test-otp: ${EXPOSE_TEST_OTP:true}
+    expose-test-otp: false
   email:
     resend-api-key: ${RESEND_API_KEY:}
     resend-from: ${RESEND_FROM:SignEase <onboarding@resend.dev>}
