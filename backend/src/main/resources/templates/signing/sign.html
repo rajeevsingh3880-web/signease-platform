@@ -463,8 +463,11 @@
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('otpInputArea').style.display = 'block';
+                    if (data.testOtp) {
+                        document.getElementById('otpInput').value = data.testOtp;
+                    }
                     const alertEl = document.getElementById('otpAlert');
-                    alertEl.innerHTML = `<span class="text-success"><i class="fa-solid fa-paper-plane me-1"></i> ${data.message} ${data.testOtp ? ' (Dev Test Code: <strong>' + data.testOtp + '</strong>)' : ''}</span>`;
+                    alertEl.innerHTML = `<span class="text-success"><i class="fa-solid fa-paper-plane me-1"></i> ${data.message} ${data.testOtp ? ' (OTP: <strong class="badge bg-primary fs-6">' + data.testOtp + '</strong> - Auto-filled)' : ''}</span>`;
 
                     let timeLeft = 60;
                     if (btn) btn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
@@ -566,7 +569,10 @@
             .then(data => {
                 if (data.success) {
                     document.getElementById('aadhaarOtpRow').style.display = 'block';
-                    document.getElementById('aadhaarAlert').innerHTML = `<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i> ${data.message} ${data.testOtp ? ' (UIDAI Test OTP: <strong>' + data.testOtp + '</strong>)' : ''}</span>`;
+                    if (data.testOtp) {
+                        document.getElementById('aadhaarOtpInput').value = data.testOtp;
+                    }
+                    document.getElementById('aadhaarAlert').innerHTML = `<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i> ${data.message} ${data.testOtp ? ' (Aadhaar OTP: <strong class="badge bg-primary fs-6">' + data.testOtp + '</strong> - Auto-filled)' : ''}</span>`;
                 } else {
                     document.getElementById('aadhaarAlert').innerHTML = `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${data.message}</span>`;
                 }

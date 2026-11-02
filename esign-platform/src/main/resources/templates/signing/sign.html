@@ -140,6 +140,11 @@
                             <i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Image
                         </button>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-semibold" id="aadhaar-tab" data-bs-toggle="tab" data-bs-target="#aadhaarPane" type="button" onclick="setSigType('AADHAAR_ESIGN')">
+                            <i class="fa-solid fa-id-card text-primary me-1"></i> Aadhaar e-Sign <span class="badge bg-warning text-dark small ms-1">UIDAI</span>
+                        </button>
+                    </li>
                 </ul>
 
                 <div class="tab-content" id="sigTabContent">
@@ -186,10 +191,65 @@
                         <div class="p-4 border rounded-3 text-center bg-light">
                             <i class="fa-regular fa-image text-muted fs-1 mb-2"></i>
                             <p class="small text-muted mb-2">Upload a clean scanned photo or PNG of your handwritten signature</p>
-                            <input type="file" id="sigFileInput" accept="image/png, image/jpeg" class="form-control form-control-sm w-auto mx-auto" onchange="loadUploadedSig(this)">
+                            <input type="file" id="sigFileInput" accept="image/*" class="form-control form-control-sm w-auto mx-auto" onchange="loadUploadedSig(this)">
                         </div>
                         <div id="uploadPreviewBox" class="text-center mt-3" style="display: none;">
                             <img id="uploadImgPreview" style="max-height: 80px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px;">
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Aadhaar e-Sign (UIDAI Authenticated) -->
+                    <div class="tab-pane fade" id="aadhaarPane" style="display: none;">
+                        <div class="p-4 border rounded-3 bg-light">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-warning text-dark px-2 py-1 me-2 fw-bold">UIDAI e-KYC</span>
+                                <h6 class="fw-bold mb-0 text-primary">Aadhaar e-Sign Verification (Section 3A, IT Act 2000)</h6>
+                            </div>
+                            <p class="small text-muted mb-3">
+                                Sign with your 12-digit Aadhaar number via One-Time Passcode (OTP) sent to your registered mobile/email.
+                            </p>
+
+                            <!-- Aadhaar Form -->
+                            <div id="aadhaarInputSection">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-7">
+                                        <label class="form-label small fw-semibold">12-Digit Aadhaar Number</label>
+                                        <input type="text" id="aadhaarNumInput" class="form-control font-monospace" placeholder="e.g. 5489 1234 5678" maxlength="14" oninput="formatAadhaar(this)">
+                                    </div>
+                                    <div class="col-md-5 d-flex align-items-end">
+                                        <button type="button" class="btn btn-primary w-100 fw-semibold" id="sendAadhaarOtpBtn" onclick="requestAadhaarOtp()">
+                                            <i class="fa-solid fa-paper-plane me-1"></i> Get Aadhaar OTP
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="aadhaarOtpRow" style="display: none;" class="pt-3 border-top">
+                                    <label class="form-label small fw-semibold">Enter 6-Digit UIDAI OTP Code</label>
+                                    <div class="row g-2">
+                                        <div class="col-md-7">
+                                            <input type="text" id="aadhaarOtpInput" class="form-control font-monospace text-center fs-5 fw-bold" placeholder="------" maxlength="6">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <button type="button" class="btn btn-success w-100 fw-semibold" onclick="verifyAadhaarOtp()">
+                                                <i class="fa-solid fa-check-double me-1"></i> Verify Aadhaar OTP
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="aadhaarAlert" class="small mt-2"></div>
+                                </div>
+                            </div>
+
+                            <!-- Aadhaar Verified Box -->
+                            <div id="aadhaarVerifiedSuccess" style="display: none;" class="p-3 bg-white border border-success rounded-3 text-center">
+                                <div class="text-success mb-2">
+                                    <i class="fa-solid fa-circle-check fs-2"></i>
+                                </div>
+                                <h6 class="fw-bold text-success mb-1">Aadhaar Identity Authenticated</h6>
+                                <div class="small text-muted mb-3" id="aadhaarVerifiedDetails"></div>
+                                <div id="aadhaarStampPreviewBox" class="mt-2 text-center">
+                                    <img id="aadhaarStampImg" style="max-width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -201,11 +261,13 @@
                 <input type="hidden" name="signatureType" id="signatureType" value="DRAWN">
                 <input type="hidden" name="typedName" id="typedName" th:value="${invite.signerName}">
                 <input type="hidden" name="otpCode" id="formOtpCode">
+                <input type="hidden" name="aadhaarNumber" id="formAadhaarNumber">
+                <input type="hidden" name="aadhaarOtp" id="formAadhaarOtp">
 
                 <div class="p-3 mb-4 bg-light rounded-3 border">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" name="consentAccepted" id="consentCheck" value="true" required>
-                        <label class="form-check-label small" for="consentCheck">
+                        <label class="form-check-label small" id="consentLabel" for="consentCheck">
                             <strong>Legal Declaration:</strong> I hereby declare that I am <span class="fw-bold" th:text="${invite.signerName}">Signer</span>, and I agree to be bound by the terms and conditions set forth in this document. I acknowledge that my electronic signature constitutes a legally valid execution under <strong>Section 10A of the Information Technology Act, 2000</strong> and the Indian Contract Act, 1872.
                         </label>
                     </div>
@@ -215,7 +277,7 @@
                     <button type="button" class="btn btn-outline-danger btn-sm" onclick="declinePrompt()">
                         <i class="fa-solid fa-xmark me-1"></i> Decline to Sign
                     </button>
-                    <button type="submit" class="btn btn-success btn-lg px-4 fw-bold shadow">
+                    <button type="submit" id="submitBtn" class="btn btn-success btn-lg px-4 fw-bold shadow">
                         <i class="fa-solid fa-signature me-2"></i> Execute &amp; Seal Document
                     </button>
                 </div>
@@ -321,6 +383,36 @@
         function setSigType(type) {
             currentSigType = type;
             document.getElementById('signatureType').value = type;
+
+            const panes = {
+                'DRAWN': 'drawPane',
+                'TYPED': 'typePane',
+                'UPLOADED': 'uploadPane',
+                'AADHAAR_ESIGN': 'aadhaarPane'
+            };
+            const tabs = {
+                'DRAWN': 'draw-tab',
+                'TYPED': 'type-tab',
+                'UPLOADED': 'upload-tab',
+                'AADHAAR_ESIGN': 'aadhaar-tab'
+            };
+
+            Object.keys(panes).forEach(k => {
+                const p = document.getElementById(panes[k]);
+                const t = document.getElementById(tabs[k]);
+                if (p) {
+                    p.classList.toggle('show', k === type);
+                    p.classList.toggle('active', k === type);
+                    p.style.display = (k === type) ? 'block' : 'none';
+                }
+                if (t) {
+                    t.classList.toggle('active', k === type);
+                }
+            });
+
+            if (type === 'DRAWN') {
+                setTimeout(resizeCanvas, 50);
+            }
         }
 
         function updateTypedPreview(val) {
@@ -337,31 +429,69 @@
 
         function loadUploadedSig(input) {
             if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select an image file (PNG, JPG, or JPEG) of your signature.');
+                    input.value = '';
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     uploadedDataUrl = e.target.result;
                     document.getElementById('uploadImgPreview').src = uploadedDataUrl;
                     document.getElementById('uploadPreviewBox').style.display = 'block';
                 };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
             }
         }
 
-        // OTP Functions
+        // OTP Functions with Anti-Duplicate Cooldown Guard
+        let isOtpRequestInProgress = false;
+        let otpCooldownTimer = null;
+
         function requestOtp() {
+            if (isOtpRequestInProgress) return;
             const btn = document.getElementById('sendOtpBtn');
-            if (btn) btn.disabled = true;
+            isOtpRequestInProgress = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Sending OTP...';
+            }
             const token = '[[${invite.signingToken}]]';
 
             fetch('/sign/' + token + '/otp', { method: 'POST' })
                 .then(res => res.json())
                 .then(data => {
                     document.getElementById('otpInputArea').style.display = 'block';
+                    if (data.testOtp) {
+                        document.getElementById('otpInput').value = data.testOtp;
+                    }
                     const alertEl = document.getElementById('otpAlert');
-                    alertEl.innerHTML = `<span class="text-success"><i class="fa-solid fa-paper-plane me-1"></i> ${data.message} ${data.testOtp ? ' (Dev Test Code: <strong>' + data.testOtp + '</strong>)' : ''}</span>`;
+                    alertEl.innerHTML = `<span class="text-success"><i class="fa-solid fa-paper-plane me-1"></i> ${data.message} ${data.testOtp ? ' (OTP: <strong class="badge bg-primary fs-6">' + data.testOtp + '</strong> - Auto-filled)' : ''}</span>`;
+
+                    let timeLeft = 60;
+                    if (btn) btn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                    if (otpCooldownTimer) clearInterval(otpCooldownTimer);
+                    otpCooldownTimer = setInterval(() => {
+                        timeLeft--;
+                        if (timeLeft <= 0) {
+                            clearInterval(otpCooldownTimer);
+                            isOtpRequestInProgress = false;
+                            if (btn) {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fa-solid fa-rotate-right me-1"></i> Resend OTP';
+                            }
+                        } else {
+                            if (btn) btn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                        }
+                    }, 1000);
                 })
                 .catch(err => {
-                    if (btn) btn.disabled = false;
+                    isOtpRequestInProgress = false;
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Send OTP Code';
+                    }
                     alert('Failed to request OTP: ' + err);
                 });
         }
@@ -396,6 +526,128 @@
                 document.getElementById('declineReason').value = reason;
                 document.getElementById('declineForm').submit();
             }
+        }
+
+        let isAadhaarVerified = false;
+        let aadhaarStampDataUrl = '';
+
+        function formatAadhaar(input) {
+            let val = input.value.replace(/\D/g, '');
+            if (val.length > 12) val = val.substring(0, 12);
+            let formatted = '';
+            for (let i = 0; i < val.length; i++) {
+                if (i > 0 && i % 4 === 0) formatted += ' ';
+                formatted += val[i];
+            }
+            input.value = formatted;
+        }
+
+        function requestAadhaarOtp() {
+            const aadhaarInput = document.getElementById('aadhaarNumInput');
+            const clean = aadhaarInput.value.replace(/\D/g, '');
+            if (clean.length !== 12) {
+                alert('Please enter a valid 12-digit Aadhaar number.');
+                return;
+            }
+            if (clean.startsWith('0') || clean.startsWith('1')) {
+                alert('Aadhaar number cannot start with 0 or 1.');
+                return;
+            }
+
+            const btn = document.getElementById('sendAadhaarOtpBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Requesting OTP...';
+
+            const token = '[[${invite.signingToken}]]';
+            fetch('/sign/' + token + '/aadhaar-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aadhaarNumber: clean })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('aadhaarOtpRow').style.display = 'block';
+                    if (data.testOtp) {
+                        document.getElementById('aadhaarOtpInput').value = data.testOtp;
+                    }
+                    document.getElementById('aadhaarAlert').innerHTML = `<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i> ${data.message} ${data.testOtp ? ' (Aadhaar OTP: <strong class="badge bg-primary fs-6">' + data.testOtp + '</strong> - Auto-filled)' : ''}</span>`;
+                } else {
+                    document.getElementById('aadhaarAlert').innerHTML = `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${data.message}</span>`;
+                }
+
+                let timeLeft = 60;
+                btn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                const aadhaarTimer = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        clearInterval(aadhaarTimer);
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-rotate-right me-1"></i> Resend OTP';
+                    } else {
+                        btn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                    }
+                }, 1000);
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Get Aadhaar OTP';
+                alert('Aadhaar OTP request failed: ' + err);
+            });
+        }
+
+        function verifyAadhaarOtp() {
+            const aadhaarInput = document.getElementById('aadhaarNumInput');
+            const clean = aadhaarInput.value.replace(/\D/g, '');
+            const otpCode = document.getElementById('aadhaarOtpInput').value.trim();
+            if (otpCode.length !== 6) {
+                alert('Please enter the 6-digit Aadhaar OTP code.');
+                return;
+            }
+
+            const token = '[[${invite.signingToken}]]';
+            fetch('/sign/' + token + '/verify-aadhaar-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aadhaarNumber: clean, otpCode: otpCode })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    isAadhaarVerified = true;
+                    aadhaarStampDataUrl = data.signatureData;
+                    document.getElementById('aadhaarInputSection').style.display = 'none';
+                    document.getElementById('aadhaarVerifiedSuccess').style.display = 'block';
+                    document.getElementById('aadhaarVerifiedDetails').innerHTML = `
+                        <strong>UID:</strong> ${data.maskedAadhaar} &bull; 
+                        <strong>Txn Ref:</strong> ${data.txnId} &bull; 
+                        <strong>Legal:</strong> Section 3A, IT Act 2000
+                    `;
+                    document.getElementById('aadhaarStampImg').src = data.signatureData;
+
+                    // Set form fields
+                    document.getElementById('formAadhaarNumber').value = data.maskedAadhaar;
+                    document.getElementById('formAadhaarOtp').value = otpCode;
+                    document.getElementById('signatureData').value = data.signatureData;
+
+                    // Also satisfy Step 1 OTP
+                    document.getElementById('otpBox').className = 'p-3 mb-4 rounded-3 border bg-success-subtle border-success';
+                    document.getElementById('otpStatusText').innerHTML = '<i class="fa-solid fa-circle-check text-success me-1"></i> Identity Verified via UIDAI Aadhaar e-KYC!';
+                    const otpInputArea = document.getElementById('otpInputArea');
+                    if (otpInputArea) otpInputArea.style.display = 'none';
+
+                    // Update legal declaration
+                    const signerName = '[[${invite.signerName}]]';
+                    document.getElementById('consentLabel').innerHTML = `
+                        <strong>UIDAI Legal Declaration:</strong> I hereby declare and affirm under <strong>Section 3A of the Information Technology Act, 2000</strong> that I am <span class="fw-bold">${signerName}</span>, and I authorize the electronic execution of this document via Aadhaar e-KYC authentication.
+                    `;
+                    document.getElementById('consentCheck').checked = true;
+                } else {
+                    document.getElementById('aadhaarAlert').innerHTML = `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${data.message}</span>`;
+                }
+            })
+            .catch(err => alert('Aadhaar verification failed: ' + err));
         }
 
         function prepareSubmission() {
@@ -435,11 +687,24 @@
                     return false;
                 }
                 document.getElementById('signatureData').value = uploadedDataUrl;
+            } else if (currentSigType === 'AADHAAR_ESIGN') {
+                if (!isAadhaarVerified) {
+                    alert('Please enter your 12-digit Aadhaar number and verify with OTP before submitting.');
+                    return false;
+                }
+                document.getElementById('signatureData').value = aadhaarStampDataUrl;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Executing & Sealing Document...';
             }
 
             return true;
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
 

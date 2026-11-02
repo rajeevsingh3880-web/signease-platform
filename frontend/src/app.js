@@ -443,12 +443,21 @@ function renderRegister(container) {
             const res = await api.sendRegistrationOtp(email);
             otpDispatched = true;
             document.getElementById('emailOtpSection').style.display = 'block';
-            document.getElementById('regOtpAlert').innerHTML = `
-                <span class="text-success">
-                    <i class="fa-solid fa-circle-check me-1"></i> ${res.message} ${res.testOtp ? `(Test Code: <strong>${res.testOtp}</strong>)` : ''}
-                </span>
-            `;
-            showToast('Verification code sent to your email! Please check your inbox.');
+            if (res.testOtp) {
+                document.getElementById('regOtpCode').value = res.testOtp;
+                document.getElementById('regOtpAlert').innerHTML = `
+                    <div class="alert alert-success py-2 px-3 small mb-0">
+                        <i class="fa-solid fa-circle-check me-1"></i> Verification Code: <strong class="badge bg-primary fs-6">${res.testOtp}</strong> (Auto-filled). Also dispatched to ${email}.
+                    </div>
+                `;
+            } else {
+                document.getElementById('regOtpAlert').innerHTML = `
+                    <span class="text-success">
+                        <i class="fa-solid fa-circle-check me-1"></i> ${res.message}
+                    </span>
+                `;
+            }
+            showToast('Verification code generated and sent! Please check your email.');
 
             let timeLeft = 60;
             sendBtn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
@@ -1380,7 +1389,10 @@ async function renderSignerPage(container, token) {
                 try {
                     const r = await api.requestOtp(token);
                     document.getElementById('otpInputArea').style.display = 'block';
-                    document.getElementById('otpMsg').innerHTML = `<span class="text-success"><i class="fa-solid fa-envelope-circle-check me-1"></i> ${r.message} ${r.testOtp ? `(Dev Test Code: <strong>${r.testOtp}</strong>)` : '<br><small class="text-muted"><i class="fa-solid fa-clock me-1"></i> Please check your inbox or spam folder. Valid for 10 minutes.</small>'}</span>`;
+                    if (r.testOtp) {
+                        document.getElementById('signerOtp').value = r.testOtp;
+                    }
+                    document.getElementById('otpMsg').innerHTML = `<span class="text-success"><i class="fa-solid fa-envelope-circle-check me-1"></i> ${r.message} ${r.testOtp ? `(Code: <strong class="badge bg-primary fs-6">${r.testOtp}</strong> - Auto-filled)` : '<br><small class="text-muted"><i class="fa-solid fa-clock me-1"></i> Please check your inbox or spam folder. Valid for 10 minutes.</small>'}</span>`;
 
                     let timeLeft = 60;
                     getOtpBtn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
@@ -1459,7 +1471,10 @@ async function renderSignerPage(container, token) {
                     spaSendAadhaarOtpBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Requesting OTP...';
                     const res = await api.requestAadhaarOtp(token, raw);
                     document.getElementById('spaAadhaarOtpRow').style.display = 'block';
-                    document.getElementById('spaAadhaarAlert').innerHTML = `<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i> ${res.message} ${res.testOtp ? `(Test Code: <strong>${res.testOtp}</strong>)` : ''}</span>`;
+                    if (res.testOtp) {
+                        document.getElementById('spaAadhaarOtpCode').value = res.testOtp;
+                    }
+                    document.getElementById('spaAadhaarAlert').innerHTML = `<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i> ${res.message} ${res.testOtp ? `(Aadhaar OTP: <strong class="badge bg-primary fs-6">${res.testOtp}</strong> - Auto-filled)` : ''}</span>`;
 
                     let timeLeft = 60;
                     spaSendAadhaarOtpBtn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;

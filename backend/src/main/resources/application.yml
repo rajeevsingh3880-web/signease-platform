@@ -61,7 +61,12 @@ app:
     dir: ./uploads
   base-url: ${APP_BASE_URL:http://localhost:8080}
   security:
-    expose-test-otp: ${EXPOSE_TEST_OTP:false}
+    expose-test-otp: ${EXPOSE_TEST_OTP:true}
+  email:
+    resend-api-key: ${RESEND_API_KEY:}
+    resend-from: ${RESEND_FROM:SignEase <onboarding@resend.dev>}
+    brevo-api-key: ${BREVO_API_KEY:}
+    brevo-from: ${BREVO_FROM:rajeevsingh3880@gmail.com}
 
 logging:
   level:
