@@ -1,0 +1,10 @@
+.git
+.vscode
+.gemini
+backend/target
+backend/.mvn-bin
+backend/uploads
+frontend/node_modules
+frontend/dist
+scratch
+

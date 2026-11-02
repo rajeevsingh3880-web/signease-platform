@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Document Execution Completed</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 20px; color: #1e293b; line-height: 1.6;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 30px;">
+        <div style="text-align: center; margin-bottom: 25px;">
+            <h2 style="color: #10b981; margin: 0;">SignEase</h2>
+            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Document Sealed &amp; Completed</p>
+        </div>
+
+        <p>Hello <strong th:text="${ownerName}">Owner</strong>,</p>
+
+        <p>Great news! All invited parties have successfully executed the following agreement:</p>
+
+        <div style="background-color: #ecfdf5; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <h4 style="margin: 0 0 5px 0; color: #065f46;" th:text="${documentTitle}">Document Title</h4>
+            <p style="margin: 0; color: #047857; font-size: 12px; font-family: monospace;" th:text="'SHA-256: ' + ${finalHash}">Final hash</p>
+        </div>
+
+        <p>The tamper-evident sealed PDF with completion certificate is now ready for your records.</p>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a th:href="${downloadUrl}" style="background-color: #10b981; color: #ffffff; text-decoration: none; font-weight: bold; padding: 14px 28px; border-radius: 6px; display: inline-block; margin-right: 10px;">
+                Download Sealed PDF
+            </a>
+            <a th:href="${verifyUrl}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; font-weight: bold; padding: 14px 28px; border-radius: 6px; display: inline-block;">
+                Verify on Public Ledger
+            </a>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;">
+
+        <p style="font-size: 11px; color: #94a3b8; text-align: center;">
+            SignEase Cryptographic Ledger • Legally valid under Indian IT Act 2000
+        </p>
+    </div>
+</body>
+</html>
+

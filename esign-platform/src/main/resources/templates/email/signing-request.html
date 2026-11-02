@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Signature Requested</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 20px; color: #1e293b; line-height: 1.6;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 30px;">
+        <div style="text-align: center; margin-bottom: 25px;">
+            <h2 style="color: #4f46e5; margin: 0;">SignEase</h2>
+            <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Electronic Document Execution Platform</p>
+        </div>
+
+        <p>Hello <strong th:text="${signerName}">Signer</strong>,</p>
+
+        <p><strong th:text="${senderName}">Sender</strong> has requested your electronic signature on the following agreement:</p>
+
+        <div style="background-color: #f1f5f9; border-left: 4px solid #4f46e5; padding: 15px; margin: 20px 0; border-radius: 4px;">
+            <h4 style="margin: 0 0 5px 0; color: #0f172a;" th:text="${documentTitle}">Document Title</h4>
+            <p style="margin: 0; color: #475569; font-size: 14px;" th:if="${message}" th:text="${message}">Message</p>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <a th:href="${signingUrl}" style="background-color: #4f46e5; color: #ffffff; text-decoration: none; font-weight: bold; padding: 14px 30px; border-radius: 6px; display: inline-block;">
+                Review and Sign Document
+            </a>
+        </div>
+
+        <p style="font-size: 13px; color: #64748b;">
+            This signing link is secure, unique to you, and requires no account. You will verify identity with a one-time passcode (OTP) on your mobile device or email.
+        </p>
+
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 25px 0;">
+
+        <p style="font-size: 11px; color: #94a3b8; text-align: center;">
+            This communication is sent pursuant to Section 10A of the Information Technology Act, 2000 &amp; Indian Contract Act, 1872. All signing events are cryptographically recorded in an immutable ledger.
+        </p>
+    </div>
+</body>
+</html>
+

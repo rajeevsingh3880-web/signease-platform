@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'Sign Document: ' + ${document.title}">Sign Document - SignEase</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f1f5f9; color: #1e293b; }
+        .sig-canvas-container {
+            background: #ffffff;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            position: relative;
+            cursor: crosshair;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 180px;
+            touch-action: none;
+        }
+        .typed-sig-preview {
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .typed-sig-preview.selected {
+            border-color: #4f46e5;
+            background: #f5f3ff;
+        }
+        .font-great-vibes { font-family: 'Great Vibes', cursive; font-size: 2.4rem; color: #0f172a; }
+        .font-dancing-script { font-family: 'Dancing Script', cursive; font-size: 2.2rem; color: #0f172a; }
+    </style>
+</head>
+<body class="py-3">
+
+    <div class="container" style="max-width: 860px;">
+
+        <!-- Brand Header -->
+        <div class="d-flex justify-content-between align-items-center mb-3 px-2">
+            <div class="d-flex align-items-center">
+                <i class="fa-solid fa-file-signature text-primary fs-3 me-2"></i>
+                <span class="fs-4 fw-bold text-primary">Sign<span class="text-dark">Ease</span></span>
+                <span class="badge bg-primary-subtle text-primary ms-2 rounded-pill small">Secure Signing</span>
+            </div>
+            <div class="text-end text-muted small">
+                <span>Requested by <strong th:text="${document.uploadedBy.fullName}">Sender</strong></span>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm bg-white p-4 p-md-5 mb-4">
+
+            <!-- Document Overview -->
+            <div class="border-bottom pb-3 mb-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="badge bg-warning-subtle text-warning fw-bold mb-1">Awaiting Your Signature</span>
+                        <h4 class="fw-bold mb-1" th:text="${document.title}">Document Title</h4>
+                        <div class="text-muted small">
+                            Signer: <strong th:text="${invite.signerName}">Signer Name</strong> (<span th:text="${invite.signerEmail}">email@domain.com</span>)
+                        </div>
+                    </div>
+                    <a th:href="@{/sign/{token}/preview(token=${invite.signingToken})}" target="_blank" class="btn btn-outline-primary btn-sm">
+                        <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Open Full PDF
+                    </a>
+                </div>
+            </div>
+
+            <!-- In-Page PDF Document Preview -->
+            <div class="mb-4">
+                <label class="form-label fw-bold small text-muted text-uppercase mb-2"><i class="fa-regular fa-file-pdf text-danger me-1"></i> Document Review</label>
+                <div class="rounded-3 border overflow-hidden" style="height: 380px; background: #e2e8f0;">
+                    <iframe th:src="@{/sign/{token}/preview(token=${invite.signingToken})}" width="100%" height="100%" style="border: none;"></iframe>
+                </div>
+            </div>
+
+            <!-- STEP 1: OTP Identity Verification (FR-07) -->
+            <div class="p-3 mb-4 rounded-3 border" id="otpBox" th:classappend="${invite.otpVerified} ? 'bg-success-subtle border-success' : 'bg-light'">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-bold small text-uppercase">
+                            <i class="fa-solid fa-shield-halved me-1 text-primary"></i> Step 1: Signer Identity Verification (OTP)
+                        </span>
+                        <div class="small text-muted" id="otpStatusText" th:if="${invite.otpVerified}">
+                            <i class="fa-solid fa-circle-check text-success me-1"></i> Verified via One-Time Passcode
+                        </div>
+                        <div class="small text-muted" id="otpStatusText" th:unless="${invite.otpVerified}">
+                            A 6-digit passcode will be sent to your email to verify identity.
+                        </div>
+                    </div>
+                    <div th:unless="${invite.otpVerified}">
+                        <button type="button" class="btn btn-sm btn-primary" id="sendOtpBtn" onclick="requestOtp()">
+                            <i class="fa-solid fa-paper-plane me-1"></i> Send OTP Code
+                        </button>
+                    </div>
+                </div>
+
+                <div th:unless="${invite.otpVerified}" id="otpInputArea" class="mt-3 pt-3 border-top" style="display: none;">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-sm-5">
+                            <input type="text" id="otpInput" class="form-control form-control-sm text-center fw-bold fs-6 font-monospace" placeholder="Enter 6-digit OTP" maxlength="6">
+                        </div>
+                        <div class="col-sm-4">
+                            <button type="button" class="btn btn-sm btn-success w-100 fw-semibold" onclick="verifyOtp()">Verify Code</button>
+                        </div>
+                        <div class="col-sm-3 text-sm-end">
+                            <button type="button" class="btn btn-link btn-sm text-muted text-decoration-none" onclick="requestOtp()">Resend</button>
+                        </div>
+                    </div>
+                    <div id="otpAlert" class="small mt-2"></div>
+                </div>
+            </div>
+
+            <!-- STEP 2: Choose & Create Signature (FR-06) -->
+            <div class="mb-4">
+                <label class="form-label fw-bold small text-muted text-uppercase mb-2"><i class="fa-solid fa-pen-nib text-primary me-1"></i> Step 2: Adopt Your Signature</label>
+
+                <!-- Navigation Tabs -->
+                <ul class="nav nav-tabs nav-fill mb-3" id="sigTab" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-semibold" id="draw-tab" data-bs-toggle="tab" data-bs-target="#drawPane" type="button" onclick="setSigType('DRAWN')">
+                            <i class="fa-solid fa-paintbrush me-1"></i> Draw Signature
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-semibold" id="type-tab" data-bs-toggle="tab" data-bs-target="#typePane" type="button" onclick="setSigType('TYPED')">
+                            <i class="fa-solid fa-keyboard me-1"></i> Type Signature
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-semibold" id="upload-tab" data-bs-toggle="tab" data-bs-target="#uploadPane" type="button" onclick="setSigType('UPLOADED')">
+                            <i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload Image
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-semibold" id="aadhaar-tab" data-bs-toggle="tab" data-bs-target="#aadhaarPane" type="button" onclick="setSigType('AADHAAR_ESIGN')">
+                            <i class="fa-solid fa-id-card text-primary me-1"></i> Aadhaar e-Sign <span class="badge bg-warning text-dark small ms-1">UIDAI</span>
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="sigTabContent">
+                    <!-- Tab 1: Draw on Canvas -->
+                    <div class="tab-pane fade show active" id="drawPane">
+                        <div class="sig-canvas-container mb-2">
+                            <canvas id="sigCanvas"></canvas>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-dark active" onclick="setPenColor('#0f172a', this)">Black</button>
+                                <button type="button" class="btn btn-outline-primary" onclick="setPenColor('#1e40af', this)">Blue</button>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearCanvas()">
+                                <i class="fa-solid fa-rotate-left me-1"></i> Clear Canvas
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Type Signature -->
+                    <div class="tab-pane fade" id="typePane">
+                        <div class="mb-3">
+                            <input type="text" id="typedNameInput" class="form-control"
+                                   th:value="${invite.signerName}" placeholder="Type your full legal name..." oninput="updateTypedPreview(this.value)">
+                        </div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="typed-sig-preview selected" id="style1" onclick="selectStyle(1)">
+                                    <div class="font-great-vibes" id="preview1" th:text="${invite.signerName}">John Doe</div>
+                                    <div class="small text-muted mt-2">Style 1 (Great Vibes)</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="typed-sig-preview" id="style2" onclick="selectStyle(2)">
+                                    <div class="font-dancing-script" id="preview2" th:text="${invite.signerName}">John Doe</div>
+                                    <div class="small text-muted mt-2">Style 2 (Dancing Script)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Upload Image -->
+                    <div class="tab-pane fade" id="uploadPane">
+                        <div class="p-4 border rounded-3 text-center bg-light">
+                            <i class="fa-regular fa-image text-muted fs-1 mb-2"></i>
+                            <p class="small text-muted mb-2">Upload a clean scanned photo or PNG of your handwritten signature</p>
+                            <input type="file" id="sigFileInput" accept="image/*" class="form-control form-control-sm w-auto mx-auto" onchange="loadUploadedSig(this)">
+                        </div>
+                        <div id="uploadPreviewBox" class="text-center mt-3" style="display: none;">
+                            <img id="uploadImgPreview" style="max-height: 80px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 4px;">
+                        </div>
+                    </div>
+
+                    <!-- Tab 4: Aadhaar e-Sign (UIDAI Authenticated) -->
+                    <div class="tab-pane fade" id="aadhaarPane" style="display: none;">
+                        <div class="p-4 border rounded-3 bg-light">
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-warning text-dark px-2 py-1 me-2 fw-bold">UIDAI e-KYC</span>
+                                <h6 class="fw-bold mb-0 text-primary">Aadhaar e-Sign Verification (Section 3A, IT Act 2000)</h6>
+                            </div>
+                            <p class="small text-muted mb-3">
+                                Sign with your 12-digit Aadhaar number via One-Time Passcode (OTP) sent to your registered mobile/email.
+                            </p>
+
+                            <!-- Aadhaar Form -->
+                            <div id="aadhaarInputSection">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-7">
+                                        <label class="form-label small fw-semibold">12-Digit Aadhaar Number</label>
+                                        <input type="text" id="aadhaarNumInput" class="form-control font-monospace" placeholder="e.g. 5489 1234 5678" maxlength="14" oninput="formatAadhaar(this)">
+                                    </div>
+                                    <div class="col-md-5 d-flex align-items-end">
+                                        <button type="button" class="btn btn-primary w-100 fw-semibold" id="sendAadhaarOtpBtn" onclick="requestAadhaarOtp()">
+                                            <i class="fa-solid fa-paper-plane me-1"></i> Get Aadhaar OTP
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="aadhaarOtpRow" style="display: none;" class="pt-3 border-top">
+                                    <label class="form-label small fw-semibold">Enter 6-Digit UIDAI OTP Code</label>
+                                    <div class="row g-2">
+                                        <div class="col-md-7">
+                                            <input type="text" id="aadhaarOtpInput" class="form-control font-monospace text-center fs-5 fw-bold" placeholder="------" maxlength="6">
+                                        </div>
+                                        <div class="col-md-5">
+                                            <button type="button" class="btn btn-success w-100 fw-semibold" onclick="verifyAadhaarOtp()">
+                                                <i class="fa-solid fa-check-double me-1"></i> Verify Aadhaar OTP
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="aadhaarAlert" class="small mt-2"></div>
+                                </div>
+                            </div>
+
+                            <!-- Aadhaar Verified Box -->
+                            <div id="aadhaarVerifiedSuccess" style="display: none;" class="p-3 bg-white border border-success rounded-3 text-center">
+                                <div class="text-success mb-2">
+                                    <i class="fa-solid fa-circle-check fs-2"></i>
+                                </div>
+                                <h6 class="fw-bold text-success mb-1">Aadhaar Identity Authenticated</h6>
+                                <div class="small text-muted mb-3" id="aadhaarVerifiedDetails"></div>
+                                <div id="aadhaarStampPreviewBox" class="mt-2 text-center">
+                                    <img id="aadhaarStampImg" style="max-width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3: Legal Consent & Submit Form -->
+            <form th:action="@{/sign/{token}/submit(token=${invite.signingToken})}" method="post" id="signSubmitForm" onsubmit="return prepareSubmission()">
+                <input type="hidden" name="signatureData" id="signatureData">
+                <input type="hidden" name="signatureType" id="signatureType" value="DRAWN">
+                <input type="hidden" name="typedName" id="typedName" th:value="${invite.signerName}">
+                <input type="hidden" name="otpCode" id="formOtpCode">
+                <input type="hidden" name="aadhaarNumber" id="formAadhaarNumber">
+                <input type="hidden" name="aadhaarOtp" id="formAadhaarOtp">
+
+                <div class="p-3 mb-4 bg-light rounded-3 border">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="consentAccepted" id="consentCheck" value="true" required>
+                        <label class="form-check-label small" id="consentLabel" for="consentCheck">
+                            <strong>Legal Declaration:</strong> I hereby declare that I am <span class="fw-bold" th:text="${invite.signerName}">Signer</span>, and I agree to be bound by the terms and conditions set forth in this document. I acknowledge that my electronic signature constitutes a legally valid execution under <strong>Section 10A of the Information Technology Act, 2000</strong> and the Indian Contract Act, 1872.
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="declinePrompt()">
+                        <i class="fa-solid fa-xmark me-1"></i> Decline to Sign
+                    </button>
+                    <button type="submit" id="submitBtn" class="btn btn-success btn-lg px-4 fw-bold shadow">
+                        <i class="fa-solid fa-signature me-2"></i> Execute &amp; Seal Document
+                    </button>
+                </div>
+            </form>
+
+            <!-- Hidden Decline Form -->
+            <form th:action="@{/sign/{token}/decline(token=${invite.signingToken})}" method="post" id="declineForm" class="d-none">
+                <input type="hidden" name="reason" id="declineReason">
+            </form>
+
+        </div>
+
+        <div class="text-center text-muted small pb-4">
+            <i class="fa-solid fa-lock text-success me-1"></i> 256-bit Encrypted Session • Compliant with Indian IT Act 2000
+        </div>
+
+    </div>
+
+    <!-- Canvas Drawing & Submission Script -->
+    <script>
+        const canvas = document.getElementById('sigCanvas');
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let penColor = '#0f172a';
+        let currentSigType = 'DRAWN';
+        let selectedStyle = 1;
+        let hasDrawn = false;
+        let uploadedDataUrl = '';
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * 2;
+            canvas.height = 180 * 2;
+            ctx.scale(2, 2);
+            ctx.strokeStyle = penColor;
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', resizeCanvas);
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            if (e.touches && e.touches.length > 0) {
+                return {
+                    x: e.touches[0].clientX - rect.left,
+                    y: e.touches[0].clientY - rect.top
+                };
+            }
+            return {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            hasDrawn = true;
+            const pos = getPos(e);
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const pos = getPos(e);
+            ctx.strokeStyle = penColor;
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function stopDrawing() { isDrawing = false; }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+
+        canvas.addEventListener('touchstart', startDrawing);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function setPenColor(color, btn) {
+            penColor = color;
+            document.querySelectorAll('#drawPane .btn-group button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hasDrawn = false;
+        }
+
+        function setSigType(type) {
+            currentSigType = type;
+            document.getElementById('signatureType').value = type;
+
+            const panes = {
+                'DRAWN': 'drawPane',
+                'TYPED': 'typePane',
+                'UPLOADED': 'uploadPane',
+                'AADHAAR_ESIGN': 'aadhaarPane'
+            };
+            const tabs = {
+                'DRAWN': 'draw-tab',
+                'TYPED': 'type-tab',
+                'UPLOADED': 'upload-tab',
+                'AADHAAR_ESIGN': 'aadhaar-tab'
+            };
+
+            Object.keys(panes).forEach(k => {
+                const p = document.getElementById(panes[k]);
+                const t = document.getElementById(tabs[k]);
+                if (p) {
+                    p.classList.toggle('show', k === type);
+                    p.classList.toggle('active', k === type);
+                    p.style.display = (k === type) ? 'block' : 'none';
+                }
+                if (t) {
+                    t.classList.toggle('active', k === type);
+                }
+            });
+
+            if (type === 'DRAWN') {
+                setTimeout(resizeCanvas, 50);
+            }
+        }
+
+        function updateTypedPreview(val) {
+            document.getElementById('preview1').textContent = val || 'Your Name';
+            document.getElementById('preview2').textContent = val || 'Your Name';
+            document.getElementById('typedName').value = val;
+        }
+
+        function selectStyle(idx) {
+            selectedStyle = idx;
+            document.getElementById('style1').classList.toggle('selected', idx === 1);
+            document.getElementById('style2').classList.toggle('selected', idx === 2);
+        }
+
+        function loadUploadedSig(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select an image file (PNG, JPG, or JPEG) of your signature.');
+                    input.value = '';
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedDataUrl = e.target.result;
+                    document.getElementById('uploadImgPreview').src = uploadedDataUrl;
+                    document.getElementById('uploadPreviewBox').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // OTP Functions with Anti-Duplicate Cooldown Guard
+        let isOtpRequestInProgress = false;
+        let otpCooldownTimer = null;
+
+        function requestOtp() {
+            if (isOtpRequestInProgress) return;
+            const btn = document.getElementById('sendOtpBtn');
+            isOtpRequestInProgress = true;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Sending OTP...';
+            }
+            const token = '[[${invite.signingToken}]]';
+
+            fetch('/sign/' + token + '/otp', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById('otpInputArea').style.display = 'block';
+                    const alertEl = document.getElementById('otpAlert');
+                    alertEl.innerHTML = `<span class="text-success"><i class="fa-solid fa-paper-plane me-1"></i> ${data.message} ${data.testOtp ? ' (Dev Test Code: <strong>' + data.testOtp + '</strong>)' : ''}</span>`;
+
+                    let timeLeft = 60;
+                    if (btn) btn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                    if (otpCooldownTimer) clearInterval(otpCooldownTimer);
+                    otpCooldownTimer = setInterval(() => {
+                        timeLeft--;
+                        if (timeLeft <= 0) {
+                            clearInterval(otpCooldownTimer);
+                            isOtpRequestInProgress = false;
+                            if (btn) {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fa-solid fa-rotate-right me-1"></i> Resend OTP';
+                            }
+                        } else {
+                            if (btn) btn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                        }
+                    }, 1000);
+                })
+                .catch(err => {
+                    isOtpRequestInProgress = false;
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Send OTP Code';
+                    }
+                    alert('Failed to request OTP: ' + err);
+                });
+        }
+
+        function verifyOtp() {
+            const code = document.getElementById('otpInput').value.trim();
+            if (!code) { alert('Please enter the 6-digit OTP code'); return; }
+            const token = '[[${invite.signingToken}]]';
+
+            fetch('/sign/' + token + '/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ otpCode: code })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('otpBox').className = 'p-3 mb-4 rounded-3 border bg-success-subtle border-success';
+                    document.getElementById('otpStatusText').innerHTML = '<i class="fa-solid fa-circle-check text-success me-1"></i> Identity Verified via OTP Code!';
+                    document.getElementById('otpInputArea').style.display = 'none';
+                    document.getElementById('formOtpCode').value = code;
+                } else {
+                    document.getElementById('otpAlert').innerHTML = `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${data.message}</span>`;
+                }
+            })
+            .catch(err => alert('Verification failed: ' + err));
+        }
+
+        function declinePrompt() {
+            const reason = prompt('Please specify the reason for declining this agreement:');
+            if (reason !== null) {
+                document.getElementById('declineReason').value = reason;
+                document.getElementById('declineForm').submit();
+            }
+        }
+
+        let isAadhaarVerified = false;
+        let aadhaarStampDataUrl = '';
+
+        function formatAadhaar(input) {
+            let val = input.value.replace(/\D/g, '');
+            if (val.length > 12) val = val.substring(0, 12);
+            let formatted = '';
+            for (let i = 0; i < val.length; i++) {
+                if (i > 0 && i % 4 === 0) formatted += ' ';
+                formatted += val[i];
+            }
+            input.value = formatted;
+        }
+
+        function requestAadhaarOtp() {
+            const aadhaarInput = document.getElementById('aadhaarNumInput');
+            const clean = aadhaarInput.value.replace(/\D/g, '');
+            if (clean.length !== 12) {
+                alert('Please enter a valid 12-digit Aadhaar number.');
+                return;
+            }
+            if (clean.startsWith('0') || clean.startsWith('1')) {
+                alert('Aadhaar number cannot start with 0 or 1.');
+                return;
+            }
+
+            const btn = document.getElementById('sendAadhaarOtpBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Requesting OTP...';
+
+            const token = '[[${invite.signingToken}]]';
+            fetch('/sign/' + token + '/aadhaar-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aadhaarNumber: clean })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('aadhaarOtpRow').style.display = 'block';
+                    document.getElementById('aadhaarAlert').innerHTML = `<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i> ${data.message} ${data.testOtp ? ' (UIDAI Test OTP: <strong>' + data.testOtp + '</strong>)' : ''}</span>`;
+                } else {
+                    document.getElementById('aadhaarAlert').innerHTML = `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${data.message}</span>`;
+                }
+
+                let timeLeft = 60;
+                btn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                const aadhaarTimer = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft <= 0) {
+                        clearInterval(aadhaarTimer);
+                        btn.disabled = false;
+                        btn.innerHTML = '<i class="fa-solid fa-rotate-right me-1"></i> Resend OTP';
+                    } else {
+                        btn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                    }
+                }, 1000);
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Get Aadhaar OTP';
+                alert('Aadhaar OTP request failed: ' + err);
+            });
+        }
+
+        function verifyAadhaarOtp() {
+            const aadhaarInput = document.getElementById('aadhaarNumInput');
+            const clean = aadhaarInput.value.replace(/\D/g, '');
+            const otpCode = document.getElementById('aadhaarOtpInput').value.trim();
+            if (otpCode.length !== 6) {
+                alert('Please enter the 6-digit Aadhaar OTP code.');
+                return;
+            }
+
+            const token = '[[${invite.signingToken}]]';
+            fetch('/sign/' + token + '/verify-aadhaar-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ aadhaarNumber: clean, otpCode: otpCode })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    isAadhaarVerified = true;
+                    aadhaarStampDataUrl = data.signatureData;
+                    document.getElementById('aadhaarInputSection').style.display = 'none';
+                    document.getElementById('aadhaarVerifiedSuccess').style.display = 'block';
+                    document.getElementById('aadhaarVerifiedDetails').innerHTML = `
+                        <strong>UID:</strong> ${data.maskedAadhaar} &bull; 
+                        <strong>Txn Ref:</strong> ${data.txnId} &bull; 
+                        <strong>Legal:</strong> Section 3A, IT Act 2000
+                    `;
+                    document.getElementById('aadhaarStampImg').src = data.signatureData;
+
+                    // Set form fields
+                    document.getElementById('formAadhaarNumber').value = data.maskedAadhaar;
+                    document.getElementById('formAadhaarOtp').value = otpCode;
+                    document.getElementById('signatureData').value = data.signatureData;
+
+                    // Also satisfy Step 1 OTP
+                    document.getElementById('otpBox').className = 'p-3 mb-4 rounded-3 border bg-success-subtle border-success';
+                    document.getElementById('otpStatusText').innerHTML = '<i class="fa-solid fa-circle-check text-success me-1"></i> Identity Verified via UIDAI Aadhaar e-KYC!';
+                    const otpInputArea = document.getElementById('otpInputArea');
+                    if (otpInputArea) otpInputArea.style.display = 'none';
+
+                    // Update legal declaration
+                    const signerName = '[[${invite.signerName}]]';
+                    document.getElementById('consentLabel').innerHTML = `
+                        <strong>UIDAI Legal Declaration:</strong> I hereby declare and affirm under <strong>Section 3A of the Information Technology Act, 2000</strong> that I am <span class="fw-bold">${signerName}</span>, and I authorize the electronic execution of this document via Aadhaar e-KYC authentication.
+                    `;
+                    document.getElementById('consentCheck').checked = true;
+                } else {
+                    document.getElementById('aadhaarAlert').innerHTML = `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${data.message}</span>`;
+                }
+            })
+            .catch(err => alert('Aadhaar verification failed: ' + err));
+        }
+
+        function prepareSubmission() {
+            if (!document.getElementById('consentCheck').checked) {
+                alert('You must accept the legal consent agreement to proceed.');
+                return false;
+            }
+
+            if (currentSigType === 'DRAWN') {
+                if (!hasDrawn) {
+                    alert('Please draw your signature on the pad before submitting.');
+                    return false;
+                }
+                document.getElementById('signatureData').value = canvas.toDataURL('image/png');
+            } else if (currentSigType === 'TYPED') {
+                const name = document.getElementById('typedNameInput').value.trim();
+                if (!name) {
+                    alert('Please enter your legal name.');
+                    return false;
+                }
+                // Render typed signature into high-res canvas image
+                const renderCanvas = document.createElement('canvas');
+                renderCanvas.width = 400;
+                renderCanvas.height = 100;
+                const rCtx = renderCanvas.getContext('2d');
+                rCtx.fillStyle = '#ffffff';
+                rCtx.fillRect(0, 0, 400, 100);
+                rCtx.fillStyle = '#0f172a';
+                rCtx.font = selectedStyle === 1 ? '48px "Great Vibes", cursive' : '44px "Dancing Script", cursive';
+                rCtx.textAlign = 'center';
+                rCtx.textBaseline = 'middle';
+                rCtx.fillText(name, 200, 50);
+                document.getElementById('signatureData').value = renderCanvas.toDataURL('image/png');
+            } else if (currentSigType === 'UPLOADED') {
+                if (!uploadedDataUrl) {
+                    alert('Please upload an image file of your signature.');
+                    return false;
+                }
+                document.getElementById('signatureData').value = uploadedDataUrl;
+            } else if (currentSigType === 'AADHAAR_ESIGN') {
+                if (!isAadhaarVerified) {
+                    alert('Please enter your 12-digit Aadhaar number and verify with OTP before submitting.');
+                    return false;
+                }
+                document.getElementById('signatureData').value = aadhaarStampDataUrl;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Executing & Sealing Document...';
+            }
+
+            return true;
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+

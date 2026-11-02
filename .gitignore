@@ -1,0 +1,39 @@
+# Neon
+.neon
+
+# Dependencies & Build artifacts
+node_modules/
+dist/
+target/
+*.class
+*.jar
+*.war
+
+# Maven
+backend/.mvn-bin/
+backend/target/
+frontend/node_modules/
+frontend/dist/
+esign-platform/.mvn-bin/
+esign-platform/target/
+esign-platform/uploads/
+
+# Uploads & Runtime Data
+backend/uploads/
+uploads/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.iml
+.gemini/
+scratch/
+
+# OS Files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Environment files
+.env
+.env.local
