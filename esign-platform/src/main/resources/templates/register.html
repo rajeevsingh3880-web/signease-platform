@@ -27,50 +27,34 @@
         <form th:action="@{/register}" th:object="${registerRequest}" method="post" id="regForm">
             <div class="row g-2 mb-3">
                 <div class="col-sm-6">
-                    <label class="form-label small fw-semibold">First Name</label>
+                    <label class="form-label small fw-semibold">First Name *</label>
                     <input type="text" th:field="*{firstName}" class="form-control" placeholder="Rajesh" required>
                     <div class="text-danger small" th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}"></div>
                 </div>
                 <div class="col-sm-6">
-                    <label class="form-label small fw-semibold">Last Name</label>
+                    <label class="form-label small fw-semibold">Last Name *</label>
                     <input type="text" th:field="*{lastName}" class="form-control" placeholder="Sharma" required>
                     <div class="text-danger small" th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}"></div>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label small fw-semibold">Organization / Business Name</label>
+                <label class="form-label small fw-semibold">Organization / Business Name *</label>
                 <input type="text" th:field="*{organizationName}" class="form-control" placeholder="Acme Technologies Pvt Ltd" required>
             </div>
 
-            <!-- Email Address with Send OTP Button -->
+            <!-- Email Address -->
             <div class="mb-3">
                 <label class="form-label small fw-semibold">Work Email Address *</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-regular fa-envelope"></i></span>
-                    <input type="email" th:field="*{email}" id="emailInput" class="form-control border-start-0" placeholder="rajesh@acme.com" required>
-                    <button type="button" class="btn btn-outline-primary fw-semibold" id="sendOtpBtn">Get OTP</button>
+                    <input type="email" th:field="*{email}" class="form-control border-start-0" placeholder="rajesh@acme.com" required>
                 </div>
                 <div class="text-danger small" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
-                <div id="otpStatusMsg" class="small mt-1"></div>
-            </div>
-
-            <!-- Email Verification OTP Field -->
-            <div class="mb-3 p-3 bg-light rounded-3 border" id="otpGroup">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <label class="form-label small fw-semibold mb-0">Email Verification Code (OTP) *</label>
-                    <span id="otpVerifiedBadge" class="badge bg-success-subtle text-success d-none"><i class="fa-solid fa-circle-check me-1"></i>Email Verified</span>
-                </div>
-                <div class="input-group">
-                    <input type="text" th:field="*{otpCode}" id="otpCodeInput" class="form-control font-monospace text-center fs-5 fw-bold" placeholder="------" maxlength="6" required>
-                    <button type="button" class="btn btn-secondary fw-semibold" id="verifyOtpBtn">Verify Code</button>
-                </div>
-                <div class="form-text small text-muted" id="otpHelperText">Click <strong>Get OTP</strong> above to receive your 6-digit code in Gmail.</div>
-                <div class="text-danger small" th:if="${#fields.hasErrors('otpCode')}" th:errors="*{otpCode}"></div>
             </div>
 
             <div class="mb-3">
-                <label class="form-label small fw-semibold">Mobile Phone (for OTP notifications)</label>
+                <label class="form-label small fw-semibold">Mobile Phone (optional)</label>
                 <div class="input-group">
                     <span class="input-group-text bg-light text-muted border-end-0">+91</span>
                     <input type="tel" th:field="*{phone}" class="form-control border-start-0" placeholder="9876543210">
@@ -79,13 +63,13 @@
 
             <div class="row g-2 mb-3">
                 <div class="col-sm-6">
-                    <label class="form-label small fw-semibold">Password</label>
-                    <input type="password" th:field="*{password}" class="form-control" placeholder="••••••••" required>
+                    <label class="form-label small fw-semibold">Password *</label>
+                    <input type="password" th:field="*{password}" class="form-control" placeholder="••••••••" minlength="6" required>
                     <div class="text-danger small" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
                 </div>
                 <div class="col-sm-6">
-                    <label class="form-label small fw-semibold">Confirm Password</label>
-                    <input type="password" th:field="*{confirmPassword}" class="form-control" placeholder="••••••••" required>
+                    <label class="form-label small fw-semibold">Confirm Password *</label>
+                    <input type="password" th:field="*{confirmPassword}" class="form-control" placeholder="••••••••" minlength="6" required>
                     <div class="text-danger small" th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}"></div>
                 </div>
             </div>
@@ -105,144 +89,5 @@
         </div>
     </div>
 
-    <script>
-        const sendOtpBtn = document.getElementById('sendOtpBtn');
-        const verifyOtpBtn = document.getElementById('verifyOtpBtn');
-        const emailInput = document.getElementById('emailInput');
-        const otpCodeInput = document.getElementById('otpCodeInput');
-        const otpStatusMsg = document.getElementById('otpStatusMsg');
-        const otpVerifiedBadge = document.getElementById('otpVerifiedBadge');
-        const otpHelperText = document.getElementById('otpHelperText');
-        const regForm = document.getElementById('regForm');
-
-        let isVerified = false;
-        let cooldownTimer = null;
-
-        function setStatus(msg, isError) {
-            otpStatusMsg.innerHTML = `<span class="${isError ? 'text-danger' : 'text-success'} fw-medium">${msg}</span>`;
-        }
-
-        sendOtpBtn.addEventListener('click', async () => {
-            const email = emailInput.value.trim();
-            if (!email || !email.includes('@')) {
-                setStatus('Please enter a valid email address first.', true);
-                emailInput.focus();
-                return;
-            }
-
-            sendOtpBtn.disabled = true;
-            sendOtpBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
-            setStatus('Sending verification code to your email...', false);
-
-            try {
-                const res = await fetch('/api/v1/auth/send-registration-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email })
-                });
-                const data = await res.json();
-                if (!res.ok || data.success === false) {
-                    throw new Error(data.error || 'Failed to send verification code.');
-                }
-
-                if (data.testOtp) {
-                    otpCodeInput.value = data.testOtp;
-                    setStatus(`Verification code generated: <strong class="badge bg-primary fs-6 px-2 py-1">${data.testOtp}</strong> (Auto-filled). Also dispatched to ${email}.`, false);
-                } else {
-                    setStatus('Verification code sent to ' + email + '! Check your inbox.', false);
-                }
-                otpCodeInput.focus();
-
-                // 60-second cooldown timer
-                let timeLeft = 60;
-                sendOtpBtn.innerText = `Resend (${timeLeft}s)`;
-                if (cooldownTimer) clearInterval(cooldownTimer);
-                cooldownTimer = setInterval(() => {
-                    timeLeft--;
-                    if (timeLeft <= 0) {
-                        clearInterval(cooldownTimer);
-                        sendOtpBtn.disabled = false;
-                        sendOtpBtn.innerText = 'Resend OTP';
-                    } else {
-                        sendOtpBtn.innerText = `Resend (${timeLeft}s)`;
-                    }
-                }, 1000);
-            } catch (err) {
-                setStatus(err.message, true);
-                sendOtpBtn.disabled = false;
-                sendOtpBtn.innerText = 'Get OTP';
-            }
-        });
-
-        verifyOtpBtn.addEventListener('click', async () => {
-            const email = emailInput.value.trim();
-            const otp = otpCodeInput.value.trim();
-            if (!otp || otp.length !== 6) {
-                setStatus('Please enter the 6-digit code sent to your email.', true);
-                otpCodeInput.focus();
-                return;
-            }
-
-            verifyOtpBtn.disabled = true;
-            verifyOtpBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-
-            try {
-                const res = await fetch('/api/v1/auth/verify-registration-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: email, otpCode: otp })
-                });
-                const data = await res.json();
-                if (!res.ok || data.success === false) {
-                    throw new Error(data.error || 'Invalid or expired verification code.');
-                }
-
-                isVerified = true;
-                verifyOtpBtn.className = 'btn btn-success fw-semibold';
-                verifyOtpBtn.innerHTML = '<i class="fa-solid fa-check me-1"></i> Verified';
-                otpVerifiedBadge.classList.remove('d-none');
-                otpHelperText.className = 'form-text small text-success fw-semibold';
-                otpHelperText.innerText = 'Email successfully authenticated!';
-                setStatus('Email authenticated successfully! Click Create Free Account below.', false);
-            } catch (err) {
-                setStatus(err.message, true);
-                verifyOtpBtn.disabled = false;
-                verifyOtpBtn.innerText = 'Verify Code';
-            }
-        });
-
-        regForm.addEventListener('submit', async (e) => {
-            const otp = otpCodeInput.value.trim();
-            if (!otp || otp.length !== 6) {
-                e.preventDefault();
-                setStatus('Please request and enter your 6-digit email verification code.', true);
-                otpCodeInput.focus();
-                return;
-            }
-            if (!isVerified) {
-                e.preventDefault();
-                const createBtn = document.getElementById('createAccountBtn');
-                createBtn.disabled = true;
-                createBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Verifying & Creating Account...';
-                try {
-                    const res = await fetch('/api/v1/auth/verify-registration-otp', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: emailInput.value.trim(), otpCode: otp })
-                    });
-                    const data = await res.json();
-                    if (!res.ok || data.success === false) {
-                        throw new Error(data.error || 'Invalid or expired verification code.');
-                    }
-                    isVerified = true;
-                    regForm.submit();
-                } catch (err) {
-                    createBtn.disabled = false;
-                    createBtn.innerText = 'Create Free Account';
-                    setStatus(err.message, true);
-                }
-            }
-        });
-    </script>
 </body>
 </html>

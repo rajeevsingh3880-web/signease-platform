@@ -27,7 +27,4 @@ public class RegisterRequest {
     private String organizationName;
 
     private String phone;
-
-    private String otpCode;
 }
-

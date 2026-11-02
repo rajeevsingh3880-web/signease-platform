@@ -28,4 +28,3 @@ public class RegisterRequest {
 
     private String phone;
 }
-

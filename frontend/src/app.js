@@ -353,10 +353,8 @@ function renderLogin(container) {
     };
 }
 
-// 3. Register Page with Email Authenticity OTP Verification
+// 3. Register Page (Direct Account Creation, No OTP Required)
 function renderRegister(container) {
-    let otpDispatched = false;
-    let isEmailVerified = false;
     api.clearToken();
 
     container.innerHTML = `
@@ -364,60 +362,39 @@ function renderRegister(container) {
             <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="max-width: 520px; width: 100%; border-radius: 16px;">
                 <div class="text-center mb-4">
                     <h5 class="fw-bold mb-1">Create Business Workspace</h5>
-                    <p class="text-muted small">Verify your email to create a secure, authentic account</p>
+                    <p class="text-muted small">Send your first document within 5 minutes of signup</p>
                 </div>
 
                 <form id="regForm">
                     <div class="row g-2 mb-3">
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">First Name</label>
+                            <label class="form-label small fw-semibold">First Name *</label>
                             <input type="text" id="regFirst" class="form-control" placeholder="Rajesh" required>
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">Last Name</label>
+                            <label class="form-label small fw-semibold">Last Name *</label>
                             <input type="text" id="regLast" class="form-control" placeholder="Sharma" required>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Company / Organization</label>
+                        <label class="form-label small fw-semibold">Company / Organization *</label>
                         <input type="text" id="regOrg" class="form-control" placeholder="Acme Technologies Pvt Ltd" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Work Email (Email Authentication)</label>
+                        <label class="form-label small fw-semibold">Work Email Address *</label>
                         <div class="input-group">
-                            <input type="email" id="regEmail" class="form-control" placeholder="rajesh@acme.com" required>
-                            <button type="button" class="btn btn-outline-primary fw-semibold" id="sendEmailOtpBtn">
-                                <i class="fa-solid fa-paper-plane me-1"></i> Send OTP
-                            </button>
+                            <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-regular fa-envelope"></i></span>
+                            <input type="email" id="regEmail" class="form-control border-start-0" placeholder="rajesh@acme.com" required>
                         </div>
-                        <div class="form-text small text-muted">We will send a 6-digit OTP code to verify this email is genuine.</div>
-                    </div>
-
-                    <!-- Email OTP Verification Box -->
-                    <div id="emailOtpSection" class="p-3 mb-3 bg-light rounded-3 border" style="display: none;">
-                        <label class="form-label small fw-bold text-primary mb-1">
-                            <i class="fa-solid fa-shield-halved me-1"></i> Enter 6-Digit Email Verification Code
-                        </label>
-                        <div class="row g-2 mb-2">
-                            <div class="col-7">
-                                <input type="text" id="regOtpCode" class="form-control font-monospace text-center fs-5 fw-bold" placeholder="------" maxlength="6">
-                            </div>
-                            <div class="col-5">
-                                <button type="button" class="btn btn-success w-100 fw-semibold" id="verifyEmailOtpBtn">
-                                    <i class="fa-solid fa-check me-1"></i> Verify OTP
-                                </button>
-                            </div>
-                        </div>
-                        <div id="regOtpAlert" class="small"></div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Password</label>
+                        <label class="form-label small fw-semibold">Password *</label>
                         <input type="password" id="regPass" class="form-control" placeholder="••••••••" minlength="6" required>
                     </div>
 
                     <button type="submit" id="submitRegBtn" class="btn btn-primary w-100 py-2 fw-semibold mb-3">
-                        <i class="fa-solid fa-user-plus me-1"></i> Verify &amp; Create Account
+                        <i class="fa-solid fa-user-plus me-1"></i> Create Free Account
                     </button>
                 </form>
 
@@ -428,115 +405,29 @@ function renderRegister(container) {
         </div>
     `;
 
-    const sendOtpAction = async () => {
-        const email = document.getElementById('regEmail').value.trim();
-        if (!email || !email.includes('@')) {
-            alert('Please enter a valid work email address first.');
-            return false;
-        }
-
-        const sendBtn = document.getElementById('sendEmailOtpBtn');
-        sendBtn.disabled = true;
-        sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Sending...';
-
-        try {
-            const res = await api.sendRegistrationOtp(email);
-            otpDispatched = true;
-            document.getElementById('emailOtpSection').style.display = 'block';
-            if (res.testOtp) {
-                document.getElementById('regOtpCode').value = res.testOtp;
-                document.getElementById('regOtpAlert').innerHTML = `
-                    <div class="alert alert-success py-2 px-3 small mb-0">
-                        <i class="fa-solid fa-circle-check me-1"></i> Verification Code: <strong class="badge bg-primary fs-6">${res.testOtp}</strong> (Auto-filled). Also dispatched to ${email}.
-                    </div>
-                `;
-            } else {
-                document.getElementById('regOtpAlert').innerHTML = `
-                    <span class="text-success">
-                        <i class="fa-solid fa-circle-check me-1"></i> ${res.message}
-                    </span>
-                `;
-            }
-            showToast('Verification code generated and sent! Please check your email.');
-
-            let timeLeft = 60;
-            sendBtn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
-            const regTimer = setInterval(() => {
-                timeLeft--;
-                if (timeLeft <= 0) {
-                    clearInterval(regTimer);
-                    sendBtn.disabled = false;
-                    sendBtn.innerHTML = '<i class="fa-solid fa-rotate-right me-1"></i> Resend OTP';
-                } else {
-                    sendBtn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
-                }
-            }, 1000);
-            return true;
-        } catch (err) {
-            sendBtn.disabled = false;
-            sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Send OTP';
-            alert(err.message);
-            return false;
-        }
-    };
-
-    document.getElementById('sendEmailOtpBtn').onclick = sendOtpAction;
-
-    document.getElementById('verifyEmailOtpBtn').onclick = async () => {
-        const email = document.getElementById('regEmail').value.trim();
-        const otpCode = document.getElementById('regOtpCode').value.trim();
-        if (otpCode.length !== 6) {
-            alert('Please enter the 6-digit OTP code sent to your email.');
-            return;
-        }
-        try {
-            await api.verifyRegistrationOtp(email, otpCode);
-            isEmailVerified = true;
-            document.getElementById('emailOtpSection').className = 'p-3 mb-3 bg-success-subtle border border-success rounded-3';
-            document.getElementById('regOtpAlert').innerHTML = '<span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Email Verified as Genuine & Authentic!</span>';
-            document.getElementById('sendEmailOtpBtn').style.display = 'none';
-            document.getElementById('regEmail').readOnly = true;
-            showToast('Email verified successfully!');
-        } catch (err) {
-            document.getElementById('regOtpAlert').innerHTML = `<span class="text-danger"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${err.message}</span>`;
-        }
-    };
-
     document.getElementById('regForm').onsubmit = async (e) => {
         e.preventDefault();
-        const email = document.getElementById('regEmail').value.trim();
-        const otpCode = document.getElementById('regOtpCode').value.trim();
-
-        if (!otpDispatched) {
-            const sent = await sendOtpAction();
-            if (sent) {
-                alert('A 6-digit verification code has been dispatched to ' + email + '. Please enter the OTP to confirm your email is genuine.');
-            }
-            return;
-        }
-
-        if (!otpCode || otpCode.length !== 6) {
-            alert('Please enter the 6-digit verification OTP code sent to your email.');
-            document.getElementById('regOtpCode').focus();
-            return;
-        }
+        const submitBtn = document.getElementById('submitRegBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Creating Account...';
 
         try {
             const data = {
                 firstName: document.getElementById('regFirst').value.trim(),
                 lastName: document.getElementById('regLast').value.trim(),
                 organizationName: document.getElementById('regOrg').value.trim(),
-                email: email,
-                password: document.getElementById('regPass').value,
-                otpCode: otpCode
+                email: document.getElementById('regEmail').value.trim(),
+                password: document.getElementById('regPass').value
             };
             const auth = await api.register(data);
             api.setToken(auth.token);
             api.setUser(auth);
             state.user = auth;
-            showToast('Account created and email authenticated successfully!');
+            showToast('Account created successfully! Welcome to SignEase.');
             window.location.hash = '#/dashboard';
         } catch (err) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fa-solid fa-user-plus me-1"></i> Create Free Account';
             showToast(err.message, 'danger');
         }
     };
