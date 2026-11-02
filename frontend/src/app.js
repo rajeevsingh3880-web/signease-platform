@@ -1096,11 +1096,12 @@ async function renderSend(container, docId) {
 
             try {
                 const res = await api.createSigningRequest(data);
-                if (data.sequentialSigning && data.signers.length > 1) {
-                    showToast(`Sequential routing active: Invite sent to Signer #1 (${data.signers[0].email}). Next signers will be notified automatically in order.`);
-                } else {
-                    showToast('Signing request dispatched successfully! Email invites sent via Gmail.');
+                let linksMsg = '';
+                if (res.signers && res.signers.length > 0) {
+                    linksMsg = res.signers.map(s => `\n• Signer: ${s.name} (${s.email})\n  Link: ${window.location.origin}/#/sign/${s.token}`).join('\n');
                 }
+                alert('✅ Agreement Dispatched Successfully!\n\nInvitation email has been sent via Gmail.' + (linksMsg ? '\n\nDirect Signing Link (Copy to share via WhatsApp/Chat):\n' + linksMsg : ''));
+                showToast('Signing request dispatched successfully! Email invites sent via Gmail.');
                 window.location.hash = `#/documents/${data.documentId}`;
             } catch (err) {
                 showToast(err.message, 'danger');

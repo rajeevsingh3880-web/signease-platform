@@ -56,11 +56,22 @@ public class ApiSigningController {
                 dto, user, request.getRemoteAddr(), request.getHeader("User-Agent")
         );
 
+        List<Map<String, Object>> signersList = signingRequest.getSignerInvites().stream()
+                .map(inv -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("id", inv.getId());
+                    m.put("name", inv.getSignerName());
+                    m.put("email", inv.getSignerEmail());
+                    m.put("token", inv.getSigningToken());
+                    return m;
+                }).toList();
+
         Map<String, Object> resp = new HashMap<>();
         resp.put("requestId", signingRequest.getId());
         resp.put("documentId", dto.getDocumentId());
         resp.put("status", signingRequest.getStatus());
         resp.put("signersCount", signingRequest.getSignerInvites().size());
+        resp.put("signers", signersList);
         resp.put("message", "Signing request created and invites dispatched successfully.");
 
         return ResponseEntity.ok(resp);

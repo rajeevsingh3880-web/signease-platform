@@ -31,16 +31,21 @@
 
             <!-- Action Button -->
             <div style="text-align: center; margin: 28px 0;">
-                <a th:href="${signingUrl}" style="background-color: #2563eb; color: #ffffff; text-decoration: none; font-weight: 600; padding: 13px 32px; border-radius: 8px; display: inline-block; font-size: 15px;">
-                    Review &amp; Sign Document
+                <a th:href="${signingUrl}" style="background-color: #2563eb; color: #ffffff !important; text-decoration: none; font-weight: 700; padding: 15px 36px; border-radius: 8px; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);">
+                    ✍️ Click Here to Review &amp; Sign
                 </a>
             </div>
 
-            <!-- Fallback URL Link -->
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 18px; margin-top: 24px; font-size: 12px; color: #64748b; line-height: 1.6;">
-                <p style="margin: 0 0 6px 0;">If the button above does not open directly, copy and paste this link into your browser address bar:</p>
-                <p style="margin: 0; word-break: break-all;">
-                    <a th:href="${signingUrl}" th:text="${signingUrl}" style="color: #2563eb; text-decoration: underline;">http://localhost:8080/sign/...</a>
+            <!-- Direct Links Box -->
+            <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin-top: 24px; font-size: 13px; color: #1e3a8a;">
+                <p style="margin: 0 0 8px 0; font-weight: 700;">Direct Signing Links (Copy and paste in browser if needed):</p>
+                <p style="margin: 0 0 8px 0;">
+                    <strong>Direct Portal:</strong><br>
+                    <a th:href="${signingUrl}" th:text="${signingUrl}" style="color: #2563eb; text-decoration: underline; word-break: break-all;">http://localhost:8080/sign/...</a>
+                </p>
+                <p th:if="${spaUrl != null and !spaUrl.isBlank()}" style="margin: 0;">
+                    <strong>Web App Portal:</strong><br>
+                    <a th:href="${spaUrl}" th:text="${spaUrl}" style="color: #0284c7; text-decoration: underline; word-break: break-all;">http://localhost:5173/#/sign/...</a>
                 </p>
             </div>
 

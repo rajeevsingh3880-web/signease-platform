@@ -192,12 +192,14 @@ public class EmailService {
         UUID token = signer != null ? signer.getSigningToken() : UUID.randomUUID();
 
         String signingUrl = baseUrl + "/sign/" + token;
+        String spaUrl = baseUrl.contains("localhost") ? ("http://localhost:5173/#/sign/" + token) : (baseUrl + "/#/sign/" + token);
 
         log.info("--------------------------------------------------");
         log.info(">>> DISPATCHING SIGNING INVITE FOR: {}", signerEmail);
         log.info(">>> Document: {}", documentTitle);
         log.info(">>> Sender: {}", senderName);
         log.info(">>> Direct Signing URL: {}", signingUrl);
+        log.info(">>> SPA Signing URL: {}", spaUrl);
         log.info("--------------------------------------------------");
 
         try {
@@ -207,6 +209,7 @@ public class EmailService {
             context.setVariable("documentTitle", documentTitle);
             context.setVariable("message", inviteMessage);
             context.setVariable("signingUrl", signingUrl);
+            context.setVariable("spaUrl", spaUrl);
             context.setVariable("expiryDate", expiryDate);
 
             String html = templateEngine.process("email/signing-request", context);
@@ -214,8 +217,9 @@ public class EmailService {
             String plainText = "Hello " + signerName + ",\n\n" +
                     senderName + " has requested your electronic signature on the document: \"" + documentTitle + "\".\n\n" +
                     (inviteMessage != null && !inviteMessage.isBlank() ? "Message: " + inviteMessage + "\n\n" : "") +
-                    "To review and sign this agreement, please open the following link in your browser:\n" +
-                    signingUrl + "\n\n" +
+                    "To review and sign this agreement, please open either link below in your browser:\n\n" +
+                    "👉 Direct Link: " + signingUrl + "\n" +
+                    "👉 Web Portal: " + spaUrl + "\n\n" +
                     "This link is unique to you and does not require an account.\n\n" +
                     "Best regards,\n" +
                     "The SignEase Team";
