@@ -33,6 +33,12 @@ spring:
           starttls:
             enable: true
             required: true
+          ssl:
+            trust: "smtp.gmail.com"
+            protocols: "TLSv1.2 TLSv1.3"
+          connectiontimeout: 15000
+          timeout: 15000
+          writetimeout: 15000
   thymeleaf:
     cache: false
     mode: HTML

@@ -24,14 +24,21 @@ spring:
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:demo@esignplatform.com}
-    password: ${MAIL_PASSWORD:demopassword}
+    username: ${MAIL_USERNAME:rajeevsingh3880@gmail.com}
+    password: ${MAIL_PASSWORD:ddfo nkwd pofx btbg}
     properties:
       mail:
         smtp:
-          auth: false
+          auth: true
           starttls:
-            enable: false
+            enable: true
+            required: true
+          ssl:
+            trust: "smtp.gmail.com"
+            protocols: "TLSv1.2 TLSv1.3"
+          connectiontimeout: 15000
+          timeout: 15000
+          writetimeout: 15000
   thymeleaf:
     cache: false
     mode: HTML
