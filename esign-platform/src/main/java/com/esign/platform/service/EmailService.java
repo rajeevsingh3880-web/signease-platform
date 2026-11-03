@@ -55,12 +55,26 @@ public class EmailService {
 
     /**
      * Resilient Email Dispatcher:
-     * 1. Attempts Resend HTTPS API (Port 443 - zero firewall blocks on Render Free)
-     * 2. Attempts Brevo HTTPS API (Port 443)
-     * 3. Falls back to Spring JavaMailSender (SMTP Port 587/465)
+     * 1. If Resend API key is configured, uses Resend HTTPS API (Port 443 - zero firewall blocks on Render Free)
+     * 2. If Brevo API key is configured, uses Brevo HTTPS API (Port 443)
+     * 3. Falls back to Spring JavaMailSender (SMTP Port 587/465) for local dev or unblocked servers
      */
     public boolean dispatchEmail(String toEmail, String subject, String plainText, String html) {
-        // Option 1: Standard Gmail SMTP (port 587)
+        // Option 1: Resend HTTPS API (if configured - instant, bypasses Render SMTP firewall)
+        if (resendApiKey != null && !resendApiKey.isBlank()) {
+            boolean sent = sendViaResend(toEmail, subject, html, plainText);
+            if (sent) return true;
+            log.warn("Resend dispatch failed for {}, falling back to next provider...", toEmail);
+        }
+
+        // Option 2: Brevo HTTPS API (if configured)
+        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
+            boolean sent = sendViaBrevo(toEmail, subject, html, plainText);
+            if (sent) return true;
+            log.warn("Brevo dispatch failed for {}, falling back to SMTP...", toEmail);
+        }
+
+        // Option 3: Standard Gmail SMTP (port 587 - default for localhost)
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             boolean isHtml = (html != null && !html.isBlank());
@@ -80,18 +94,6 @@ public class EmailService {
             return true;
         } catch (Exception e) {
             log.warn("Gmail SMTP dispatch failed for {}: {}", toEmail, e.getMessage());
-        }
-
-        // Option 2: Resend HTTPS API (if configured)
-        if (resendApiKey != null && !resendApiKey.isBlank()) {
-            boolean sent = sendViaResend(toEmail, subject, html, plainText);
-            if (sent) return true;
-        }
-
-        // Option 3: Brevo HTTPS API (if configured)
-        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
-            boolean sent = sendViaBrevo(toEmail, subject, html, plainText);
-            if (sent) return true;
         }
 
         return false;
