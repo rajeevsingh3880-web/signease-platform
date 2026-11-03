@@ -57,9 +57,6 @@ public class AuthService {
             throw new IllegalArgumentException("A valid email address is required");
         }
         String cleanEmail = email.trim().toLowerCase();
-        if (userRepository.existsByEmail(cleanEmail)) {
-            throw new IllegalArgumentException("An account with this email already exists: " + cleanEmail);
-        }
 
         LocalDateTime now = LocalDateTime.now();
         RegistrationOtpEntry existing = registrationOtpStore.get(cleanEmail);
@@ -108,9 +105,6 @@ public class AuthService {
     @Transactional
     public User registerUser(RegisterRequest request) {
         String cleanEmail = request.getEmail().trim().toLowerCase();
-        if (userRepository.existsByEmail(cleanEmail)) {
-            throw new IllegalArgumentException("An account with this email already exists: " + cleanEmail);
-        }
 
         // Validate email OTP authentication
         RegistrationOtpEntry entry = registrationOtpStore.get(cleanEmail);
@@ -135,17 +129,16 @@ public class AuthService {
                 .build();
         Organization savedOrg = organizationRepository.save(organization);
 
-        User user = User.builder()
-                .firstName(request.getFirstName())
-                .lastName(request.getLastName())
-                .email(cleanEmail)
-                .password(passwordEncoder.encode(request.getPassword()))
-                .phone(request.getPhone())
-                .organization(savedOrg)
-                .role(User.Role.SIGNER)
-                .enabled(true)
-                .emailVerified(true)
-                .build();
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseGet(() -> User.builder().email(cleanEmail).role(User.Role.SIGNER).build());
+
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setPhone(request.getPhone());
+        user.setOrganization(savedOrg);
+        user.setEnabled(true);
+        user.setEmailVerified(true);
 
         return userRepository.save(user);
     }
