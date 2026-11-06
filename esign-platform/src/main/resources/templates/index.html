@@ -3,42 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SignEase - Legally Defensible Electronic Signature Platform</title>
+    <title>SignEase - Simple & Secure Digital Signatures</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    
+    <!-- Google Translate Script & Helpers -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'hi,mr,gu,bn,ta,te,kn,pa,ur,es,fr,de,ar,ru,zh-CN,ja,en',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+
+        function setGoogleLang(langCode) {
+            var select = document.querySelector('.goog-te-combo');
+            if (select) {
+                select.value = langCode;
+                select.dispatchEvent(new Event('change'));
+            } else {
+                document.cookie = 'googtrans=/en/' + langCode + '; path=/;';
+                document.cookie = 'googtrans=/en/' + langCode + '; path=/; domain=' + window.location.hostname + ';';
+                location.reload();
+            }
+        }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-light: #f8fafc;
+        }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-light); color: #1e293b; top: 0px !important; }
+        
+        .goog-te-banner-frame.skiptranslate,
+        .goog-te-banner-frame,
+        #goog-gt-tt,
+        .goog-te-balloon-frame {
+            display: none !important;
+        }
+        .goog-te-gadget-simple {
+            background-color: transparent !important;
+            border: none !important;
+            font-size: 0.85rem !important;
+            padding: 0 !important;
+        }
+        .goog-te-combo {
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+
         .hero-section {
-            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
-            color: white;
-            padding: 90px 0 80px 0;
-            position: relative;
-            overflow: hidden;
+            background-color: #f1f5f9;
+            padding: 70px 0 60px 0;
+            border-bottom: 1px solid #e2e8f0;
         }
-        .hero-section::after {
-            content: "";
-            position: absolute;
-            bottom: 0; left: 0; right: 0;
-            height: 40px;
-            background: #f8fafc;
-            clip-path: polygon(0 100%, 100% 100%, 100% 0);
-        }
-        .feature-icon-box {
-            width: 54px; height: 54px;
+        .step-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.4rem;
-            margin-bottom: 1.25rem;
+            padding: 24px;
+            height: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .step-circle {
-            width: 44px; height: 44px;
-            border-radius: 50%;
-            background: #4f46e5;
-            color: white;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700;
-            margin: 0 auto 1rem auto;
+        .step-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .step-number {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: #eff6ff;
+            color: #2563eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -46,16 +96,34 @@
 
     <!-- Header / Navbar -->
     <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top shadow-sm py-2">
-        <div class="container px-4">
+        <div class="container-fluid px-lg-4">
             <a class="navbar-brand d-flex align-items-center" th:href="@{/}">
                 <i class="fa-solid fa-file-signature me-2 text-primary fs-3"></i>
                 <span class="fw-bold fs-4 text-primary">Sign<span class="text-dark">Ease</span></span>
-                <span class="badge bg-primary-subtle text-primary ms-2 rounded-pill" style="font-size: 0.7rem;">INDIA eSIGN</span>
             </a>
-            <div class="ms-auto d-flex gap-2">
-                <a th:href="@{/verify}" class="btn btn-outline-success btn-sm px-3"><i class="fa-solid fa-shield-halved me-1"></i> Verify Document</a>
+
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <!-- Language Selector Dropdown -->
+                <div class="dropdown me-2">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-globe me-1 text-primary"></i>
+                        <span>Language / भाषा</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                        <li><h6 class="dropdown-header">Select Language / भाषा चुनें</h6></li>
+                        <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="setGoogleLang('en')">🇬🇧 English</a></li>
+                        <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="setGoogleLang('hi')">🇮🇳 हिन्दी (Hindi)</a></li>
+                        <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="setGoogleLang('mr')">🇮🇳 मराठी (Marathi)</a></li>
+                        <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="setGoogleLang('gu')">🇮🇳 ગુજરાતી (Gujarati)</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li class="dropdown-header small text-muted">More Languages / अन्य भाषाएं:</li>
+                        <li class="px-3 py-1"><div id="google_translate_element"></div></li>
+                    </ul>
+                </div>
+
+                <a th:href="@{/verify}" class="btn btn-outline-success btn-sm px-3 d-none d-sm-inline-flex align-items-center"><i class="fa-solid fa-shield-halved me-1"></i> Verify</a>
                 <a th:href="@{/login}" class="btn btn-outline-primary btn-sm px-3">Sign In</a>
-                <a th:href="@{/register}" class="btn btn-primary btn-sm px-3">Get Started</a>
+                <a th:href="@{/register}" class="btn btn-primary btn-sm px-3">Create Account</a>
             </div>
         </div>
     </nav>
@@ -63,161 +131,108 @@
     <!-- Hero Section -->
     <section class="hero-section text-center">
         <div class="container px-4">
-            <div class="badge bg-white text-primary fw-semibold px-3 py-2 rounded-pill mb-3 shadow-sm">
-                <i class="fa-solid fa-certificate text-warning me-1"></i> Section 10A IT Act 2000 Compliant Execution
+            <div class="badge bg-primary-subtle text-primary fw-semibold px-3 py-2 rounded-pill mb-3">
+                ✨ Simple &amp; Secure Digital Signatures
             </div>
-            <h1 class="display-4 fw-extrabold mb-3" style="letter-spacing: -1px; font-weight: 800;">
-                Turn Signing Turnaround From <br><span class="text-warning">Days Into Minutes</span>
+            <h1 class="display-5 fw-bold mb-3" style="letter-spacing: -0.5px;">
+                Sign &amp; Send Documents in Minutes
             </h1>
-            <p class="lead mb-4 mx-auto text-light opacity-90" style="max-width: 680px; font-size: 1.15rem;">
-                Replace paper-based signing with legally valid, trackable digital contract execution for Indian SMEs, lenders, and enterprises. 100% tamper-evident with SHA-256 audit ledger.
+            <p class="lead mb-4 mx-auto text-muted" style="max-width: 680px; font-size: 1.15rem;">
+                The easiest, fastest way to sign contracts and agreements online. Safe, legally valid, and works directly on your phone or computer.
             </p>
-            <div class="d-flex justify-content-center gap-3 mb-5">
-                <a th:href="@{/register}" class="btn btn-warning text-dark fw-bold btn-lg px-4 shadow">
-                    <i class="fa-solid fa-rocket me-2"></i> Start Free Trial
+            <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
+                <a th:href="@{/register}" class="btn btn-primary btn-lg px-4 shadow-sm">
+                    <i class="fa-solid fa-pen-nib me-2"></i> Start Free Trial
                 </a>
-                <a th:href="@{/login}" class="btn btn-outline-light btn-lg px-4">
-                    <i class="fa-solid fa-right-to-bracket me-2"></i> Sender Dashboard
+                <a th:href="@{/login}" class="btn btn-outline-secondary btn-lg px-4 bg-white">
+                    <i class="fa-solid fa-right-to-bracket me-2"></i> My Dashboard
                 </a>
-            </div>
-
-            <!-- Metric Badges -->
-            <div class="row g-3 justify-content-center pt-3 text-start" style="max-width: 850px; margin: 0 auto;">
-                <div class="col-md-4">
-                    <div class="p-3 bg-white bg-opacity-10 rounded-3 border border-white border-opacity-20 backdrop-blur">
-                        <div class="fs-4 fw-bold text-warning">&lt; 30 Minutes</div>
-                        <div class="small text-light opacity-80">Median send-to-sign turnaround time</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 bg-white bg-opacity-10 rounded-3 border border-white border-opacity-20 backdrop-blur">
-                        <div class="fs-4 fw-bold text-success">100% Defensible</div>
-                        <div class="small text-light opacity-80">Cryptographic audit trail with chained hash</div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-3 bg-white bg-opacity-10 rounded-3 border border-white border-opacity-20 backdrop-blur">
-                        <div class="fs-4 fw-bold text-info">Zero App Needed</div>
-                        <div class="small text-light opacity-80">Signers open link &amp; OTP sign on any phone</div>
-                    </div>
-                </div>
+                <a th:href="@{/verify}" class="btn btn-outline-success btn-lg px-4 bg-white">
+                    <i class="fa-solid fa-shield-halved me-2"></i> Verify a Document
+                </a>
             </div>
         </div>
     </section>
 
-    <!-- Key Features Section -->
+    <!-- 3 Simple Steps -->
     <section class="py-5">
         <div class="container px-4">
             <div class="text-center mb-5">
-                <h6 class="text-primary fw-bold text-uppercase letter-spacing-1">Complete Contract Platform</h6>
-                <h2 class="fw-bold">Everything You Need for Compliant Digital Execution</h2>
+                <h3 class="fw-bold">3 Simple Steps to Sign Any Document</h3>
+                <p class="text-muted small">Anyone can use SignEase without training or complex software.</p>
             </div>
 
             <div class="row g-4">
                 <div class="col-md-4">
-                    <div class="card h-100 p-4 border-0 shadow-sm">
-                        <div class="feature-icon-box bg-primary-subtle text-primary">
-                            <i class="fa-solid fa-file-arrow-up"></i>
-                        </div>
-                        <h5 class="fw-bold">1. Upload &amp; Place Fields</h5>
-                        <p class="text-muted small">
-                            Upload PDF agreements (up to 25 MB). Visually place signatures, dates, text, and checkboxes with multi-page support.
-                        </p>
+                    <div class="step-card">
+                        <div class="step-number"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                        <h5 class="fw-bold">1. Upload PDF</h5>
+                        <p class="text-muted small mb-0">Choose any contract, agreement, or form from your phone or computer.</p>
                     </div>
                 </div>
-
                 <div class="col-md-4">
-                    <div class="card h-100 p-4 border-0 shadow-sm">
-                        <div class="feature-icon-box bg-warning-subtle text-warning">
-                            <i class="fa-solid fa-mobile-screen-button"></i>
-                        </div>
-                        <h5 class="fw-bold">2. Mobile OTP &amp; Signer Flow</h5>
-                        <p class="text-muted small">
-                            External signers don't need an account. They click a secure link, verify with 6-digit OTP, and sign by drawing, typing, or uploading.
-                        </p>
+                    <div class="step-card">
+                        <div class="step-number"><i class="fa-solid fa-users"></i></div>
+                        <h5 class="fw-bold">2. Add Signers</h5>
+                        <p class="text-muted small mb-0">Enter the email address of people who need to sign. They receive an email invite instantly.</p>
                     </div>
                 </div>
-
                 <div class="col-md-4">
-                    <div class="card h-100 p-4 border-0 shadow-sm">
-                        <div class="feature-icon-box bg-success-subtle text-success">
-                            <i class="fa-solid fa-stamp"></i>
-                        </div>
-                        <h5 class="fw-bold">3. Tamper-Evident Sealed PDF</h5>
-                        <p class="text-muted small">
-                            Appends an official Completion Certificate with SHA-256 fingerprint, signer IP addresses, timestamps, and verifiable hash chain.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="card h-100 p-4 border-0 shadow-sm">
-                        <div class="feature-icon-box bg-info-subtle text-info">
-                            <i class="fa-solid fa-arrows-split-up-and-left"></i>
-                        </div>
-                        <h5 class="fw-bold">4. Sequential &amp; Parallel Workflows</h5>
-                        <p class="text-muted small">
-                            Define signing order. Set up strict sequential routing where Signer 2 receives the invite only after Signer 1 executes.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="card h-100 p-4 border-0 shadow-sm">
-                        <div class="feature-icon-box bg-danger-subtle text-danger">
-                            <i class="fa-solid fa-link"></i>
-                        </div>
-                        <h5 class="fw-bold">5. Immutable Audit Ledger</h5>
-                        <p class="text-muted small">
-                            Every single action is logged with IP, device, and chained with <code>prev_hash</code>. Any post-signing alteration is instantly detectable.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="col-md-4">
-                    <div class="card h-100 p-4 border-0 shadow-sm">
-                        <div class="feature-icon-box bg-secondary-subtle text-dark">
-                            <i class="fa-solid fa-code"></i>
-                        </div>
-                        <h5 class="fw-bold">6. REST API &amp; Sandbox Ready</h5>
-                        <p class="text-muted small">
-                            Easily integrate into your CRM, HRMS, or Loan Origination System (LOS) via REST endpoints and signed webhooks.
-                        </p>
+                    <div class="step-card">
+                        <div class="step-number"><i class="fa-solid fa-file-circle-check"></i></div>
+                        <h5 class="fw-bold">3. Sign &amp; Download</h5>
+                        <p class="text-muted small mb-0">Sign with your finger or type your name, and download the finished, legally valid PDF.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Quick Verification Section -->
+    <!-- Why People Love SignEase -->
     <section class="py-5 bg-white border-top border-bottom">
-        <div class="container px-4 text-center" style="max-width: 700px;">
-            <div class="badge bg-success-subtle text-success mb-2 px-3 py-2 rounded-pill fw-semibold">
-                <i class="fa-solid fa-shield-check me-1"></i> Public Independent Verification
+        <div class="container px-4">
+            <div class="text-center mb-5">
+                <h3 class="fw-bold">Why People Love SignEase</h3>
+                <p class="text-muted small">Designed for individuals, businesses, and everyday agreements.</p>
             </div>
-            <h3 class="fw-bold mb-3">Verify Any Signed Document Instantly</h3>
-            <p class="text-muted mb-4">
-                Auditors, legal teams, or counterparties can independently verify the authenticity of any document by entering its cryptographic SHA-256 hash or uploading the sealed PDF.
-            </p>
-            <form th:action="@{/verify}" method="post" class="d-flex gap-2">
-                <input type="text" name="hash" class="form-control form-control-lg fs-6" placeholder="Paste 64-character SHA-256 hash or Document ID..." required>
-                <button type="submit" class="btn btn-primary px-4 fw-semibold text-nowrap">Verify Hash</button>
-            </form>
-            <div class="mt-3">
-                <a th:href="@{/verify}" class="small text-decoration-none text-muted"><i class="fa-solid fa-file-pdf me-1"></i> Or upload the PDF file to verify</a>
+
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="p-4 rounded-3 border bg-light h-100">
+                        <div class="text-primary fs-3 mb-2"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                        <h6 class="fw-bold">Zero Complicated Setup</h6>
+                        <p class="text-muted small mb-0">No software installation needed. Signers open the link on mobile or PC and sign in seconds.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-4 rounded-3 border bg-light h-100">
+                        <div class="text-success fs-3 mb-2"><i class="fa-solid fa-certificate"></i></div>
+                        <h6 class="fw-bold">100% Legally Valid</h6>
+                        <p class="text-muted small mb-0">Full completion certificates with tamper-evident audit logs recognized under the IT Act.</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-4 rounded-3 border bg-light h-100">
+                        <div class="text-info fs-3 mb-2"><i class="fa-solid fa-paper-plane"></i></div>
+                        <h6 class="fw-bold">Instant Email Delivery</h6>
+                        <p class="text-muted small mb-0">Verification OTPs and invitation links arrive instantly in your recipient's inbox.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
     <footer class="py-4 bg-white">
-        <div class="container px-4 text-center text-muted small">
-            <p class="mb-1"><strong>SignEase Platform</strong> — Electronic Document Execution System designed for Indian SMEs &amp; Regulated Entities.</p>
-            <p class="mb-0">Compliant with Section 10A of the Information Technology Act, 2000 &amp; Indian Contract Act, 1872.</p>
+        <div class="container px-4 d-flex flex-wrap justify-content-between align-items-center text-muted small">
+            <div><strong>SignEase</strong> &copy; 2026. Simple, fast and legally valid electronic document signing.</div>
+            <div class="d-flex align-items-center gap-3">
+                <a th:href="@{/verify}" class="text-decoration-none text-primary"><i class="fa-solid fa-shield-halved me-1"></i> Verify Document</a>
+                <a th:href="@{/login}" class="text-decoration-none text-muted">Sign In</a>
+            </div>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-

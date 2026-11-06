@@ -24,7 +24,7 @@
                 <div style="font-weight: 700; color: #0f172a; font-size: 15px;">
                     📄 <span th:text="${documentTitle}">Document Title</span>
                 </div>
-                <div th:if="${message != null and !message.isBlank()}" style="color: #475569; font-size: 13px; margin-top: 8px;">
+                <div th:if="${hasMessage}" style="color: #475569; font-size: 13px; margin-top: 8px;">
                     <span style="font-weight: 600;">Message:</span> <span th:text="${message}" style="font-style: italic;">Message</span>
                 </div>
             </div>
@@ -43,7 +43,7 @@
                     <strong>Direct Portal:</strong><br>
                     <a th:href="${signingUrl}" th:text="${signingUrl}" style="color: #2563eb; text-decoration: underline; word-break: break-all;">http://localhost:8080/sign/...</a>
                 </p>
-                <p th:if="${spaUrl != null and !spaUrl.isBlank()}" style="margin: 0;">
+                <p th:if="${hasSpaUrl}" style="margin: 0;">
                     <strong>Web App Portal:</strong><br>
                     <a th:href="${spaUrl}" th:text="${spaUrl}" style="color: #0284c7; text-decoration: underline; word-break: break-all;">http://localhost:5173/#/sign/...</a>
                 </p>

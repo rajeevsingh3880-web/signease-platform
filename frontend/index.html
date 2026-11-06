@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SignEase — Electronic Signature &amp; Contract Platform</title>
+    <title>SignEase — Simple &amp; Secure Digital Signatures</title>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,6 +13,30 @@
     <!-- Font Awesome 6 -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/src/style.css">
+
+    <!-- Google Translate Script & Helpers -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'en',
+                includedLanguages: 'hi,mr,gu,bn,ta,te,kn,pa,ur,es,fr,de,ar,ru,zh-CN,ja,en',
+                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+
+        function setGoogleLang(langCode) {
+            var select = document.querySelector('.goog-te-combo');
+            if (select) {
+                select.value = langCode;
+                select.dispatchEvent(new Event('change'));
+            } else {
+                document.cookie = 'googtrans=/en/' + langCode + '; path=/;';
+                document.cookie = 'googtrans=/en/' + langCode + '; path=/; domain=' + window.location.hostname + ';';
+            }
+        }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 </head>
 <body>
     <div id="app"></div>
@@ -22,4 +46,3 @@
     <script type="module" src="/src/app.js"></script>
 </body>
 </html>
-

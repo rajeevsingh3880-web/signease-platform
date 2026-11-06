@@ -55,23 +55,29 @@ public class EmailService {
 
     /**
      * Resilient Email Dispatcher:
-     * 1. If Resend API key is configured, uses Resend HTTPS API (Port 443 - zero firewall blocks on Render Free)
-     * 2. If Brevo API key is configured, uses Brevo HTTPS API (Port 443)
+     * 1. If Brevo API key is configured, uses Brevo HTTPS API (Port 443 - zero firewall blocks, sends to ANY email)
+     * 2. If Resend API key is configured, uses Resend HTTPS API (Port 443)
      * 3. Falls back to Spring JavaMailSender (SMTP Port 587/465) for local dev or unblocked servers
      */
     public boolean dispatchEmail(String toEmail, String subject, String plainText, String html) {
-        // Option 1: Resend HTTPS API (if configured - instant, bypasses Render SMTP firewall)
-        if (resendApiKey != null && !resendApiKey.isBlank()) {
-            boolean sent = sendViaResend(toEmail, subject, html, plainText);
+        if (toEmail == null || toEmail.isBlank()) {
+            log.warn("Cannot dispatch email: recipient email is null or empty");
+            return false;
+        }
+        String cleanEmail = toEmail.trim();
+
+        // Option 1: Brevo HTTPS API (Prioritized! Supports all recipients without domain restrictions)
+        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
+            boolean sent = sendViaBrevo(cleanEmail, subject, html, plainText);
             if (sent) return true;
-            log.warn("Resend dispatch failed for {}, falling back to next provider...", toEmail);
+            log.warn("Brevo dispatch failed for {}, falling back to next provider...", cleanEmail);
         }
 
-        // Option 2: Brevo HTTPS API (if configured)
-        if (brevoApiKey != null && !brevoApiKey.isBlank()) {
-            boolean sent = sendViaBrevo(toEmail, subject, html, plainText);
+        // Option 2: Resend HTTPS API (if configured)
+        if (resendApiKey != null && !resendApiKey.isBlank()) {
+            boolean sent = sendViaResend(cleanEmail, subject, html, plainText);
             if (sent) return true;
-            log.warn("Brevo dispatch failed for {}, falling back to SMTP...", toEmail);
+            log.warn("Resend dispatch failed for {}, falling back to SMTP...", cleanEmail);
         }
 
         // Option 3: Standard Gmail SMTP (port 587 - default for localhost)
@@ -81,7 +87,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, isHtml, "UTF-8");
 
             helper.setFrom(fromEmail);
-            helper.setTo(toEmail);
+            helper.setTo(cleanEmail);
             helper.setSubject(subject);
             if (isHtml) {
                 helper.setText(plainText != null ? plainText : "", html);
@@ -90,10 +96,10 @@ public class EmailService {
             }
 
             mailSender.send(mimeMessage);
-            log.info("Email successfully dispatched via Gmail SMTP to {}", toEmail);
+            log.info("Email successfully dispatched via Gmail SMTP to {}", cleanEmail);
             return true;
         } catch (Exception e) {
-            log.warn("Gmail SMTP dispatch failed for {}: {}", toEmail, e.getMessage());
+            log.warn("Gmail SMTP dispatch failed for {}: {}", cleanEmail, e.getMessage());
         }
 
         return false;
@@ -148,12 +154,13 @@ public class EmailService {
 
             Map<String, Object> payload = new HashMap<>();
             String senderEmail = (brevoFrom != null && !brevoFrom.isBlank()) ? brevoFrom : fromEmail;
-            payload.put("sender", Map.of("name", "SignEase", "email", senderEmail));
-            payload.put("to", List.of(Map.of("email", toEmail)));
+            payload.put("sender", Map.of("name", "SignEase", "email", senderEmail.trim()));
+            payload.put("to", List.of(Map.of("email", toEmail.trim())));
             payload.put("subject", subject);
             if (html != null && !html.isBlank()) {
                 payload.put("htmlContent", html);
-            } else if (plainText != null) {
+            }
+            if (plainText != null && !plainText.isBlank()) {
                 payload.put("textContent", plainText);
             }
 
@@ -183,18 +190,29 @@ public class EmailService {
 
     @Async
     public void sendSigningInvite(SigningRequest request, SignerInvite signer) {
-        String signerEmail = signer != null ? signer.getSignerEmail() : "";
-        String signerName = (signer != null && signer.getSignerName() != null) ? signer.getSignerName() : signerEmail;
-        String senderName = (request != null && request.getRequestedBy() != null && request.getRequestedBy().getFullName() != null)
-                ? request.getRequestedBy().getFullName() : "Document Requester";
-        String documentTitle = (request != null && request.getDocument() != null && request.getDocument().getTitle() != null)
-                ? request.getDocument().getTitle() : "Agreement";
-        String inviteMessage = request != null ? request.getMessage() : "";
-        java.time.LocalDateTime expiryDate = signer != null ? signer.getTokenExpiry() : java.time.LocalDateTime.now().plusDays(30);
-        UUID token = signer != null ? signer.getSigningToken() : UUID.randomUUID();
+        String signerEmail = (signer != null && signer.getSignerEmail() != null) ? signer.getSignerEmail().trim() : "";
+        if (signerEmail.isBlank()) {
+            log.warn("Cannot dispatch signing invite: signer email is empty.");
+            return;
+        }
 
-        String signingUrl = baseUrl + "/sign/" + token;
-        String spaUrl = baseUrl.contains("localhost") ? ("http://localhost:5173/#/sign/" + token) : (baseUrl + "/#/sign/" + token);
+        String signerName = (signer != null && signer.getSignerName() != null && !signer.getSignerName().isBlank())
+                ? signer.getSignerName().trim() : signerEmail;
+        String senderName = (request != null && request.getRequestedBy() != null && request.getRequestedBy().getFullName() != null)
+                ? request.getRequestedBy().getFullName().trim() : "Document Requester";
+        String documentTitle = (request != null && request.getDocument() != null && request.getDocument().getTitle() != null)
+                ? request.getDocument().getTitle().trim() : (request != null && request.getTitle() != null ? request.getTitle().trim() : "Agreement");
+        String inviteMessage = (request != null && request.getMessage() != null) ? request.getMessage().trim() : "";
+        boolean hasMessage = !inviteMessage.isEmpty();
+
+        UUID token = signer != null ? signer.getSigningToken() : UUID.randomUUID();
+        java.time.LocalDateTime expiryDate = (signer != null && signer.getTokenExpiry() != null)
+                ? signer.getTokenExpiry() : java.time.LocalDateTime.now().plusDays(30);
+
+        String activeBaseUrl = (baseUrl != null && !baseUrl.isBlank() && !baseUrl.contains("localhost"))
+                ? baseUrl : "https://signease-platform.onrender.com";
+        String signingUrl = activeBaseUrl + "/sign/" + token;
+        String spaUrl = activeBaseUrl + "/#/sign/" + token;
 
         log.info("--------------------------------------------------");
         log.info(">>> DISPATCHING SIGNING INVITE FOR: {}", signerEmail);
@@ -204,31 +222,50 @@ public class EmailService {
         log.info(">>> SPA Signing URL: {}", spaUrl);
         log.info("--------------------------------------------------");
 
+        String html = null;
         try {
             Context context = new Context();
             context.setVariable("signerName", signerName);
             context.setVariable("senderName", senderName);
             context.setVariable("documentTitle", documentTitle);
             context.setVariable("message", inviteMessage);
+            context.setVariable("hasMessage", hasMessage);
             context.setVariable("signingUrl", signingUrl);
             context.setVariable("spaUrl", spaUrl);
+            context.setVariable("hasSpaUrl", true);
             context.setVariable("expiryDate", expiryDate);
 
-            String html = templateEngine.process("email/signing-request", context);
-
-            String plainText = "Hello " + signerName + ",\n\n" +
-                    senderName + " has requested your electronic signature on the document: \"" + documentTitle + "\".\n\n" +
-                    (inviteMessage != null && !inviteMessage.isBlank() ? "Message: " + inviteMessage + "\n\n" : "") +
-                    "To review and sign this agreement, please open either link below in your browser:\n\n" +
-                    "👉 Direct Link: " + signingUrl + "\n" +
-                    "👉 Web Portal: " + spaUrl + "\n\n" +
-                    "This link is unique to you and does not require an account.\n\n" +
-                    "Best regards,\n" +
-                    "The SignEase Team";
-
-            dispatchEmail(signerEmail, "Signature Requested: " + documentTitle, plainText, html);
+            html = templateEngine.process("email/signing-request", context);
         } catch (Exception e) {
-            log.error("Could not complete signing invite dispatch to {}: {}", signerEmail, e.getMessage());
+            log.warn("Thymeleaf template rendering failed for signing invite: {}. Using generated inline HTML fallback.", e.getMessage());
+            html = "<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;padding:24px;max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;'>" +
+                    "<div style='background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#ffffff;padding:20px;text-align:center;border-radius:8px 8px 0 0;'><h2 style='margin:0;'>SignEase Document Execution</h2></div>" +
+                    "<div style='padding:24px;'>" +
+                    "<p>Hello <strong>" + signerName + "</strong>,</p>" +
+                    "<p><strong>" + senderName + "</strong> has requested your electronic signature on <strong>" + documentTitle + "</strong>.</p>" +
+                    (hasMessage ? "<p style='padding:12px;background:#f1f5f9;border-left:4px solid #3b82f6;'><em>" + inviteMessage + "</em></p>" : "") +
+                    "<div style='text-align:center;margin:30px 0;'>" +
+                    "<a href='" + spaUrl + "' style='background:#2563eb;color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:16px;display:inline-block;'>✍️ Click Here to Review &amp; Sign</a>" +
+                    "</div>" +
+                    "<p style='font-size:13px;color:#64748b;'>Direct Link: <a href='" + spaUrl + "'>" + spaUrl + "</a></p>" +
+                    "</div></div>";
+        }
+
+        String plainText = "Hello " + signerName + ",\n\n" +
+                senderName + " has requested your electronic signature on the document: \"" + documentTitle + "\".\n\n" +
+                (hasMessage ? "Message: " + inviteMessage + "\n\n" : "") +
+                "To review and sign this agreement, please open either link below in your browser:\n\n" +
+                "👉 Review & Sign Link: " + spaUrl + "\n" +
+                "👉 Direct Portal: " + signingUrl + "\n\n" +
+                "This link is unique to you and does not require an account.\n\n" +
+                "Best regards,\n" +
+                "The SignEase Team";
+
+        boolean dispatched = dispatchEmail(signerEmail, "Action Required: Please sign " + documentTitle, plainText, html);
+        if (!dispatched) {
+            log.error("Failed to dispatch signing invite to {}", signerEmail);
+        } else {
+            log.info("Successfully dispatched signing invite to {}", signerEmail);
         }
     }
 

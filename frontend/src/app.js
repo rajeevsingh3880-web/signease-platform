@@ -1,9 +1,19 @@
 import { api } from './api.js';
+import { t, getLang, setLang } from './i18n.js';
 
 // Application State
 const state = {
     user: api.getUser(),
     route: window.location.hash || '#/'
+};
+
+// Global Language Change Action
+window.changeAppLanguage = function(lang) {
+    setLang(lang);
+    if (typeof setGoogleLang === 'function') {
+        setGoogleLang(lang);
+    }
+    render();
 };
 
 // Router
@@ -96,14 +106,33 @@ async function render() {
         return;
     }
 
-    // Header Navbar
+    // Language Selector Component HTML
+    const langSelectorHtml = `
+        <div class="dropdown me-2">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center" type="button" data-bs-toggle="dropdown" id="langSelectorBtn">
+                <i class="fa-solid fa-globe me-1 text-primary"></i>
+                <span class="fw-medium">${getLang() === 'hi' ? '🇮🇳 हिन्दी' : (getLang() === 'mr' ? '🇮🇳 मराठी' : (getLang() === 'gu' ? '🇮🇳 ગુજરાતી' : '🌐 Language / भाषा'))}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                <li><h6 class="dropdown-header">Select Language / भाषा चुनें</h6></li>
+                <li><a class="dropdown-item notranslate ${getLang() === 'en' ? 'fw-bold active' : ''}" href="javascript:void(0)" onclick="window.changeAppLanguage('en')">🇬🇧 English</a></li>
+                <li><a class="dropdown-item notranslate ${getLang() === 'hi' ? 'fw-bold active' : ''}" href="javascript:void(0)" onclick="window.changeAppLanguage('hi')">🇮🇳 हिन्दी (Hindi)</a></li>
+                <li><a class="dropdown-item notranslate ${getLang() === 'mr' ? 'fw-bold active' : ''}" href="javascript:void(0)" onclick="window.changeAppLanguage('mr')">🇮🇳 मराठी (Marathi)</a></li>
+                <li><a class="dropdown-item notranslate ${getLang() === 'gu' ? 'fw-bold active' : ''}" href="javascript:void(0)" onclick="window.changeAppLanguage('gu')">🇮🇳 ગુજરાતી (Gujarati)</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li class="dropdown-header small text-muted">More Languages / अन्य भाषाएं:</li>
+                <li class="px-3 py-1"><div id="google_translate_element"></div></li>
+            </ul>
+        </div>
+    `;
+
+    // Clean, Ordinary Header Navbar
     let html = `
         <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top py-2 shadow-sm">
             <div class="container-fluid px-lg-4">
                 <a class="navbar-brand d-flex align-items-center" href="#/">
                     <i class="fa-solid fa-file-signature text-primary fs-4 me-2"></i>
                     <span class="fw-bold text-primary">Sign<span class="text-dark">Ease</span></span>
-                    <span class="badge bg-primary-subtle text-primary ms-2 rounded-pill small" style="font-size: 0.65rem;">INDIA eSIGN</span>
                 </a>
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
@@ -113,25 +142,27 @@ async function render() {
                 <div class="collapse navbar-collapse" id="navContent">
                     ${state.user ? `
                         <ul class="navbar-nav me-auto ms-3">
-                            <li class="nav-item"><a class="nav-link ${path === 'dashboard' ? 'active text-primary fw-semibold' : ''}" href="#/dashboard"><i class="fa-solid fa-chart-pie me-1"></i> Dashboard</a></li>
-                            <li class="nav-item"><a class="nav-link ${path === 'documents' ? 'active text-primary fw-semibold' : ''}" href="#/documents"><i class="fa-regular fa-folder me-1"></i> Documents</a></li>
-                            <li class="nav-item"><a class="nav-link ${path === 'upload' ? 'active text-primary fw-semibold' : ''}" href="#/upload"><i class="fa-solid fa-cloud-arrow-up me-1"></i> Upload</a></li>
-                            <li class="nav-item"><a class="nav-link ${path === 'send' ? 'active text-primary fw-semibold' : ''}" href="#/send"><i class="fa-solid fa-paper-plane me-1"></i> Send</a></li>
-                            <li class="nav-item"><a class="nav-link text-success fw-medium ${path === 'verify' ? 'active' : ''}" href="#/verify"><i class="fa-solid fa-shield-halved me-1"></i> Verify PDF</a></li>
-                            ${state.user.role === 'ADMIN' ? `<li class="nav-item"><a class="nav-link text-danger fw-medium ${path === 'admin' ? 'active' : ''}" href="#/admin"><i class="fa-solid fa-shield me-1"></i> Admin</a></li>` : ''}
+                            <li class="nav-item"><a class="nav-link ${path === 'dashboard' ? 'active text-primary fw-semibold' : ''}" href="#/dashboard"><i class="fa-solid fa-chart-pie me-1"></i> ${t('dashboard')}</a></li>
+                            <li class="nav-item"><a class="nav-link ${path === 'documents' ? 'active text-primary fw-semibold' : ''}" href="#/documents"><i class="fa-regular fa-folder me-1"></i> ${t('documents')}</a></li>
+                            <li class="nav-item"><a class="nav-link ${path === 'upload' ? 'active text-primary fw-semibold' : ''}" href="#/upload"><i class="fa-solid fa-cloud-arrow-up me-1"></i> ${t('upload')}</a></li>
+                            <li class="nav-item"><a class="nav-link ${path === 'send' ? 'active text-primary fw-semibold' : ''}" href="#/send"><i class="fa-solid fa-paper-plane me-1"></i> ${t('send')}</a></li>
+                            <li class="nav-item"><a class="nav-link text-success fw-medium ${path === 'verify' ? 'active' : ''}" href="#/verify"><i class="fa-solid fa-shield-halved me-1"></i> ${t('verify')}</a></li>
+                            ${state.user.role === 'ADMIN' ? `<li class="nav-item"><a class="nav-link text-danger fw-medium ${path === 'admin' ? 'active' : ''}" href="#/admin"><i class="fa-solid fa-shield me-1"></i> ${t('admin')}</a></li>` : ''}
                         </ul>
-                        <div class="d-flex align-items-center gap-3 ms-auto">
-                            <div class="text-end d-none d-sm-block">
+                        <div class="d-flex align-items-center gap-2 ms-auto">
+                            ${langSelectorHtml}
+                            <div class="text-end d-none d-sm-block me-2">
                                 <div class="fw-bold small">${state.user.fullName}</div>
-                                <div class="text-muted" style="font-size: 0.72rem;">${state.user.organization || 'Enterprise'} (${state.user.role})</div>
+                                <div class="text-muted" style="font-size: 0.72rem;">${state.user.organization || 'Enterprise'}</div>
                             </div>
-                            <button id="logoutBtn" class="btn btn-sm btn-outline-danger" title="Sign Out"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+                            <button id="logoutBtn" class="btn btn-sm btn-outline-danger" title="${t('signOut')}"><i class="fa-solid fa-arrow-right-from-bracket me-1"></i> ${t('signOut')}</button>
                         </div>
                     ` : `
                         <ul class="navbar-nav ms-auto align-items-center gap-2">
-                            <li class="nav-item"><a class="nav-link text-success fw-medium" href="#/verify"><i class="fa-solid fa-shield-halved me-1"></i> Verify Document</a></li>
-                            <li class="nav-item"><a class="btn btn-outline-primary btn-sm px-3" href="#/login">Sign In</a></li>
-                            <li class="nav-item"><a class="btn btn-primary btn-sm px-3" href="#/register">Get Started</a></li>
+                            ${langSelectorHtml}
+                            <li class="nav-item"><a class="nav-link text-success fw-medium" href="#/verify"><i class="fa-solid fa-shield-halved me-1"></i> ${t('verify')}</a></li>
+                            <li class="nav-item"><a class="btn btn-outline-primary btn-sm px-3" href="#/login">${t('signIn')}</a></li>
+                            <li class="nav-item"><a class="btn btn-primary btn-sm px-3" href="#/register">${t('createAccount')}</a></li>
                         </ul>
                     `}
                 </div>
@@ -140,11 +171,10 @@ async function render() {
         <main class="flex-grow-1" id="page-content"></main>
         <footer class="py-3 mt-auto bg-white border-top">
             <div class="container-fluid px-lg-4 d-flex flex-wrap justify-content-between align-items-center text-muted small">
-                <div><strong>SignEase</strong> &copy; 2026. Electronic Execution under <strong>Section 10A, IT Act 2000</strong> &amp; Indian Contract Act, 1872.</div>
+                <div><strong>SignEase</strong> &copy; 2026. ${t('footerNote')}</div>
                 <div class="d-flex align-items-center gap-3">
-                    <span><i class="fa-solid fa-lock text-success me-1"></i> SHA-256 Tamper Evident</span>
-                    <span><i class="fa-solid fa-server text-primary me-1"></i> Hosted in India</span>
-                    <a href="#/verify" class="text-decoration-none text-primary fw-medium"><i class="fa-solid fa-magnifying-glass me-1"></i> Public Ledger Verification</a>
+                    <span><i class="fa-solid fa-shield-check text-success me-1"></i> 100% Safe</span>
+                    <a href="#/verify" class="text-decoration-none text-primary fw-medium"><i class="fa-solid fa-magnifying-glass me-1"></i> ${t('verify')}</a>
                 </div>
             </div>
         </footer>
@@ -201,78 +231,88 @@ async function render() {
     }
 }
 
-// 1. Landing Page
+// 1. Simple, Clean, Ordinary Landing Page
 function renderLanding(container) {
     container.innerHTML = `
-        <section class="hero-section text-center">
-            <div class="container px-4">
-                <div class="badge bg-white text-primary fw-semibold px-3 py-2 rounded-pill mb-3 shadow-sm">
-                    <i class="fa-solid fa-certificate text-warning me-1"></i> Section 10A IT Act 2000 Compliant Execution
+        <section class="hero-section text-center py-5">
+            <div class="container px-4 py-3">
+                <div class="badge bg-primary-subtle text-primary fw-semibold px-3 py-2 rounded-pill mb-3">
+                    ${t('heroBadge')}
                 </div>
-                <h1 class="display-4 fw-extrabold mb-3" style="font-weight: 800;">
-                    Turn Signing Turnaround From <br><span class="text-warning">Days Into Minutes</span>
+                <h1 class="display-5 fw-bold mb-3" style="letter-spacing: -0.5px;">
+                    ${t('heroTitle')}
                 </h1>
-                <p class="lead mb-4 mx-auto text-light opacity-90" style="max-width: 680px; font-size: 1.15rem;">
-                    Replace paper contracts with legally valid, trackable digital execution for Indian SMEs and lenders. 100% tamper-evident with SHA-256 cryptographic audit ledger.
+                <p class="lead mb-4 mx-auto text-muted" style="max-width: 680px; font-size: 1.15rem;">
+                    ${t('heroSubtitle')}
                 </p>
-                <div class="d-flex justify-content-center gap-3 mb-5">
-                    <a href="#/register" class="btn btn-warning text-dark fw-bold btn-lg px-4 shadow">
-                        <i class="fa-solid fa-rocket me-2"></i> Start Free Trial
+                <div class="d-flex flex-wrap justify-content-center gap-3 mb-5">
+                    <a href="#/register" class="btn btn-primary btn-lg px-4 shadow-sm">
+                        <i class="fa-solid fa-pen-nib me-2"></i> ${t('btnStartFree')}
                     </a>
-                    <a href="#/login" class="btn btn-outline-light btn-lg px-4">
-                        <i class="fa-solid fa-right-to-bracket me-2"></i> Sender Dashboard
+                    <a href="#/login" class="btn btn-outline-secondary btn-lg px-4">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i> ${t('btnSenderDashboard')}
+                    </a>
+                    <a href="#/verify" class="btn btn-outline-success btn-lg px-4">
+                        <i class="fa-solid fa-shield-halved me-2"></i> ${t('btnVerifyDoc')}
                     </a>
                 </div>
 
-                <div class="row g-3 justify-content-center pt-3 text-start" style="max-width: 850px; margin: 0 auto;">
+                <!-- 3 Simple Ordinary Steps -->
+                <div class="text-center mb-4">
+                    <h5 class="fw-bold text-muted text-uppercase small">${t('howItWorks')}</h5>
+                </div>
+                <div class="row g-4 justify-content-center text-start" style="max-width: 900px; margin: 0 auto;">
                     <div class="col-md-4">
-                        <div class="p-3 bg-white bg-opacity-10 rounded-3 border border-white border-opacity-20">
-                            <div class="fs-4 fw-bold text-warning">&lt; 30 Minutes</div>
-                            <div class="small text-light opacity-80">Median send-to-sign turnaround time</div>
+                        <div class="step-card">
+                            <div class="step-number"><i class="fa-solid fa-file-arrow-up"></i></div>
+                            <h6 class="fw-bold mb-2">${t('step1Title')}</h6>
+                            <p class="text-muted small mb-0">${t('step1Desc')}</p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="p-3 bg-white bg-opacity-10 rounded-3 border border-white border-opacity-20">
-                            <div class="fs-4 fw-bold text-success">100% Defensible</div>
-                            <div class="small text-light opacity-80">Chained hash audit trail under Evidence Act</div>
+                        <div class="step-card">
+                            <div class="step-number"><i class="fa-solid fa-user-plus"></i></div>
+                            <h6 class="fw-bold mb-2">${t('step2Title')}</h6>
+                            <p class="text-muted small mb-0">${t('step2Desc')}</p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="p-3 bg-white bg-opacity-10 rounded-3 border border-white border-opacity-20">
-                            <div class="fs-4 fw-bold text-info">Zero App Needed</div>
-                            <div class="small text-light opacity-80">Signers open link &amp; OTP sign on any phone</div>
+                        <div class="step-card">
+                            <div class="step-number"><i class="fa-solid fa-file-circle-check"></i></div>
+                            <h6 class="fw-bold mb-2">${t('step3Title')}</h6>
+                            <p class="text-muted small mb-0">${t('step3Desc')}</p>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="py-5">
-            <div class="container px-4">
-                <div class="text-center mb-5">
-                    <h6 class="text-primary fw-bold text-uppercase">Enterprise-Grade Features</h6>
-                    <h2 class="fw-bold">Everything Needed for Compliant Digital Execution</h2>
+        <!-- Clean, Ordinary Feature Highlights -->
+        <section class="py-5 bg-white border-bottom">
+            <div class="container px-4" style="max-width: 900px;">
+                <div class="text-center mb-4">
+                    <h4 class="fw-bold">${t('whyChooseUs')}</h4>
                 </div>
-                <div class="row g-4">
+                <div class="row g-3">
                     <div class="col-md-4">
-                        <div class="card h-100 p-4 border-0 shadow-sm">
-                            <i class="fa-solid fa-file-arrow-up text-primary fs-1 mb-3"></i>
-                            <h5 class="fw-bold">1. Upload &amp; Route</h5>
-                            <p class="text-muted small">Upload PDF contracts (up to 25 MB). Set sequential or parallel signing order.</p>
+                        <div class="p-3 border rounded-3 bg-light h-100">
+                            <i class="fa-solid fa-mobile-screen text-primary fs-3 mb-2"></i>
+                            <h6 class="fw-bold">${t('feature1Title')}</h6>
+                            <p class="text-muted small mb-0">${t('feature1Desc')}</p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card h-100 p-4 border-0 shadow-sm">
-                            <i class="fa-solid fa-mobile-screen-button text-warning fs-1 mb-3"></i>
-                            <h5 class="fw-bold">2. Mobile OTP &amp; Signature</h5>
-                            <p class="text-muted small">Signers verify with 6-digit OTP and sign by drawing, typing, or uploading image.</p>
+                        <div class="p-3 border rounded-3 bg-light h-100">
+                            <i class="fa-solid fa-stamp text-success fs-3 mb-2"></i>
+                            <h6 class="fw-bold">${t('feature2Title')}</h6>
+                            <p class="text-muted small mb-0">${t('feature2Desc')}</p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="card h-100 p-4 border-0 shadow-sm">
-                            <i class="fa-solid fa-shield-halved text-success fs-1 mb-3"></i>
-                            <h5 class="fw-bold">3. Sealed PDF &amp; Audit Trail</h5>
-                            <p class="text-muted small">Appends Completion Certificate with SHA-256 fingerprint, IP addresses, and timestamps.</p>
+                        <div class="p-3 border rounded-3 bg-light h-100">
+                            <i class="fa-solid fa-envelope-circle-check text-warning fs-3 mb-2"></i>
+                            <h6 class="fw-bold">${t('feature3Title')}</h6>
+                            <p class="text-muted small mb-0">${t('feature3Desc')}</p>
                         </div>
                     </div>
                 </div>
@@ -281,30 +321,30 @@ function renderLanding(container) {
     `;
 }
 
-// 2. Login Page
+// 2. Simple, Ordinary Login Page
 function renderLogin(container) {
     container.innerHTML = `
         <div class="d-flex align-items-center justify-content-center py-5">
-            <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="max-width: 440px; width: 100%; border-radius: 16px;">
+            <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="max-width: 440px; width: 100%; border-radius: 12px;">
                 <div class="text-center mb-4">
                     <a href="#/" class="text-decoration-none d-inline-flex align-items-center mb-2">
                         <i class="fa-solid fa-file-signature text-primary fs-2 me-2"></i>
                         <span class="fs-3 fw-bold text-primary">Sign<span class="text-dark">Ease</span></span>
                     </a>
-                    <h5 class="fw-bold mb-1">Sign In</h5>
-                    <p class="text-muted small">Access your electronic signature workspace</p>
+                    <h5 class="fw-bold mb-1">${t('loginTitle')}</h5>
+                    <p class="text-muted small">${t('loginSub')}</p>
                 </div>
 
                 <form id="loginForm">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Email Address</label>
+                        <label class="form-label small fw-semibold">${t('emailAddress')}</label>
                         <input type="email" id="loginEmail" class="form-control" placeholder="name@company.com" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Password</label>
+                        <label class="form-label small fw-semibold">${t('password')}</label>
                         <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-3">Sign In</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-3">${t('signIn')}</button>
                 </form>
 
                 <div class="p-3 bg-light rounded-3 border mb-3">
@@ -320,7 +360,7 @@ function renderLogin(container) {
                 </div>
 
                 <div class="text-center text-muted small">
-                    Don't have an account? <a href="#/register" class="fw-semibold text-primary text-decoration-none">Create free account</a>
+                    ${t('dontHaveAccount')} <a href="#/register" class="fw-semibold text-primary text-decoration-none">${t('signUpHere')}</a>
                 </div>
             </div>
         </div>
@@ -353,7 +393,7 @@ function renderLogin(container) {
     };
 }
 
-// 3. Register Page with Email OTP Verification
+// 3. Simple, Ordinary Register Page with Email OTP Verification
 function renderRegister(container) {
     let otpDispatched = false;
     let isEmailVerified = false;
@@ -361,37 +401,41 @@ function renderRegister(container) {
 
     container.innerHTML = `
         <div class="d-flex align-items-center justify-content-center py-5">
-            <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="max-width: 520px; width: 100%; border-radius: 16px;">
+            <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="max-width: 520px; width: 100%; border-radius: 12px;">
                 <div class="text-center mb-4">
-                    <h5 class="fw-bold mb-1">Create Business Workspace</h5>
-                    <p class="text-muted small">Verify your email to create a secure, authentic account</p>
+                    <a href="#/" class="text-decoration-none d-inline-flex align-items-center mb-2">
+                        <i class="fa-solid fa-file-signature text-primary fs-2 me-2"></i>
+                        <span class="fs-3 fw-bold text-primary">Sign<span class="text-dark">Ease</span></span>
+                    </a>
+                    <h5 class="fw-bold mb-1">${t('regTitle')}</h5>
+                    <p class="text-muted small">${t('regSub')}</p>
                 </div>
 
                 <form id="regForm">
                     <div class="row g-2 mb-3">
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">First Name *</label>
+                            <label class="form-label small fw-semibold">${t('firstName')} *</label>
                             <input type="text" id="regFirst" class="form-control" placeholder="Rajesh" required>
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">Last Name *</label>
+                            <label class="form-label small fw-semibold">${t('lastName')} *</label>
                             <input type="text" id="regLast" class="form-control" placeholder="Sharma" required>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Company / Organization *</label>
-                        <input type="text" id="regOrg" class="form-control" placeholder="Acme Technologies Pvt Ltd" required>
+                        <label class="form-label small fw-semibold">${t('orgName')} *</label>
+                        <input type="text" id="regOrg" class="form-control" placeholder="Acme Enterprises" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Work Email Address *</label>
+                        <label class="form-label small fw-semibold">${t('emailAddress')} *</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-regular fa-envelope"></i></span>
-                            <input type="email" id="regEmail" class="form-control border-start-0" placeholder="rajesh@acme.com" required>
+                            <input type="email" id="regEmail" class="form-control border-start-0" placeholder="name@domain.com" required>
                             <button type="button" class="btn btn-primary fw-semibold px-3" id="sendEmailOtpBtn">
-                                <i class="fa-solid fa-paper-plane me-1"></i> Get OTP
+                                <i class="fa-solid fa-paper-plane me-1"></i> ${t('btnGetOtp')}
                             </button>
                         </div>
-                        <div class="form-text small text-muted">A 6-digit verification code will be sent to this email inbox.</div>
+                        <div class="form-text small text-muted">${t('otpDispatchedMsg')}</div>
                         <div id="regEmailAlert" class="small mt-1"></div>
                     </div>
 
@@ -399,10 +443,10 @@ function renderRegister(container) {
                     <div id="emailOtpSection" class="p-3 mb-3 bg-light rounded-3 border">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label small fw-bold text-primary mb-0">
-                                <i class="fa-solid fa-shield-halved me-1"></i> Enter 6-Digit Email Verification Code *
+                                <i class="fa-solid fa-shield-halved me-1"></i> ${t('otpLabel')} *
                             </label>
                             <span id="regEmailVerifiedBadge" class="badge bg-success-subtle text-success d-none">
-                                <i class="fa-solid fa-circle-check me-1"></i> Email Verified
+                                <i class="fa-solid fa-circle-check me-1"></i> Verified
                             </span>
                         </div>
                         <div class="row g-2 mb-2">
@@ -411,25 +455,25 @@ function renderRegister(container) {
                             </div>
                             <div class="col-5">
                                 <button type="button" class="btn btn-outline-success w-100 fw-semibold" id="verifyEmailOtpBtn">
-                                    <i class="fa-solid fa-check me-1"></i> Verify Code
+                                    <i class="fa-solid fa-check me-1"></i> ${t('btnVerifyOtp')}
                                 </button>
                             </div>
                         </div>
-                        <div id="regOtpAlert" class="small text-muted">Click <strong>Get OTP</strong> to dispatch the code to your email.</div>
+                        <div id="regOtpAlert" class="small text-muted">Click <strong>${t('btnGetOtp')}</strong> to receive your code.</div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Password *</label>
+                        <label class="form-label small fw-semibold">${t('password')} *</label>
                         <input type="password" id="regPass" class="form-control" placeholder="••••••••" minlength="6" required>
                     </div>
 
                     <button type="submit" id="submitRegBtn" class="btn btn-primary w-100 py-2 fw-semibold mb-3">
-                        <i class="fa-solid fa-user-plus me-1"></i> Create Free Account
+                        <i class="fa-solid fa-user-plus me-1"></i> ${t('btnCreateAccount')}
                     </button>
                 </form>
 
                 <div class="text-center text-muted small">
-                    Already registered? <a href="#/login" class="fw-semibold text-primary text-decoration-none">Sign in here</a>
+                    ${t('alreadyRegistered')} <a href="#/login" class="fw-semibold text-primary text-decoration-none">${t('signInHere')}</a>
                 </div>
             </div>
         </div>
@@ -451,10 +495,10 @@ function renderRegister(container) {
             otpDispatched = true;
             document.getElementById('regEmailAlert').innerHTML = `
                 <span class="text-success fw-medium">
-                    <i class="fa-solid fa-envelope-circle-check me-1"></i> ${res.message || 'Verification code sent to your email! Please check your inbox and spam folder.'}
+                    <i class="fa-solid fa-envelope-circle-check me-1"></i> ${res.message || t('otpDispatchedMsg')}
                 </span>
             `;
-            showToast('Verification code dispatched to ' + email + '! Check your inbox.');
+            showToast(t('otpDispatchedMsg'));
 
             let timeLeft = 60;
             sendBtn.innerHTML = `Resend (${timeLeft}s)`;
@@ -471,7 +515,7 @@ function renderRegister(container) {
             return true;
         } catch (err) {
             sendBtn.disabled = false;
-            sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> Get OTP';
+            sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> ' + t('btnGetOtp');
             document.getElementById('regEmailAlert').innerHTML = `<span class="text-danger fw-medium"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${err.message}</span>`;
             return false;
         }
@@ -491,7 +535,7 @@ function renderRegister(container) {
             isEmailVerified = true;
             document.getElementById('emailOtpSection').className = 'p-3 mb-3 bg-success-subtle border border-success rounded-3';
             document.getElementById('regEmailVerifiedBadge').classList.remove('d-none');
-            document.getElementById('regOtpAlert').innerHTML = '<span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Email Verified Successfully!</span>';
+            document.getElementById('regOtpAlert').innerHTML = '<span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Email Verified!</span>';
             document.getElementById('sendEmailOtpBtn').style.display = 'none';
             document.getElementById('regEmail').readOnly = true;
             showToast('Email verified successfully!');
@@ -528,17 +572,17 @@ function renderRegister(container) {
             api.setToken(auth.token);
             api.setUser(auth);
             state.user = auth;
-            showToast('Account created and email verified successfully!');
+            showToast('Account created successfully!');
             window.location.hash = '#/dashboard';
         } catch (err) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fa-solid fa-user-plus me-1"></i> Create Free Account';
+            submitBtn.innerHTML = '<i class="fa-solid fa-user-plus me-1"></i> ' + t('btnCreateAccount');
             showToast(err.message, 'danger');
         }
     };
 }
 
-// 4. Dashboard View
+// 4. Simple, Ordinary Dashboard View
 async function renderDashboard(container) {
     container.innerHTML = `<div class="p-5 text-center"><i class="fa-solid fa-spinner fa-spin fs-2 text-primary"></i><div class="mt-2 text-muted">Loading dashboard...</div></div>`;
 
@@ -549,105 +593,80 @@ async function renderDashboard(container) {
             <div class="container-fluid px-lg-4 py-4">
                 <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
                     <div>
-                        <h4 class="fw-bold mb-1">Good day, ${state.user.fullName || 'User'}! 👋</h4>
-                        <p class="text-muted small mb-0">Contract execution status overview across documents and signatories.</p>
+                        <h4 class="fw-bold mb-1">${t('welcomeBack')} ${state.user.fullName || 'User'}! 👋</h4>
+                        <p class="text-muted small mb-0">${t('dashboardSub')}</p>
                     </div>
                     <div class="d-flex gap-2">
-                        <a href="#/verify" class="btn btn-outline-success btn-sm px-3"><i class="fa-solid fa-shield-halved me-1"></i> Verify Ledger</a>
-                        <a href="#/upload" class="btn btn-primary btn-sm px-3"><i class="fa-solid fa-cloud-arrow-up me-1"></i> Upload Document</a>
+                        <a href="#/verify" class="btn btn-outline-success btn-sm px-3"><i class="fa-solid fa-shield-halved me-1"></i> ${t('verify')}</a>
+                        <a href="#/upload" class="btn btn-primary btn-sm px-3"><i class="fa-solid fa-cloud-arrow-up me-1"></i> ${t('btnNewDoc')}</a>
                     </div>
                 </div>
 
-                <!-- 4 KPI Cards -->
+                <!-- 3 Simple KPI Cards -->
                 <div class="row g-3 mb-4">
-                    <div class="col-6 col-lg-3">
-                        <div class="card stat-card p-3 border-0 bg-white">
-                            <div class="text-muted small fw-semibold text-uppercase">Total Documents</div>
-                            <h3 class="fw-bold mb-1">${stats.totalDocuments}</h3>
-                            <div class="text-muted small">Registered in ledger</div>
+                    <div class="col-md-4">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted small fw-semibold">${t('totalDocs')}</span>
+                                <i class="fa-solid fa-file text-primary fs-5"></i>
+                            </div>
+                            <h3 class="fw-bold mb-0">${stats.totalDocuments}</h3>
                         </div>
                     </div>
-                    <div class="col-6 col-lg-3">
-                        <div class="card stat-card p-3 border-0 bg-white">
-                            <div class="text-muted small fw-semibold text-uppercase">Awaiting Signature</div>
-                            <h3 class="fw-bold mb-1 text-warning">${stats.pendingSignatures}</h3>
-                            <div class="text-muted small">Sent or in progress</div>
+                    <div class="col-md-4">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted small fw-semibold">${t('pendingDocs')}</span>
+                                <i class="fa-solid fa-hourglass-half text-warning fs-5"></i>
+                            </div>
+                            <h3 class="fw-bold mb-0 text-warning">${stats.pendingSignatures}</h3>
                         </div>
                     </div>
-                    <div class="col-6 col-lg-3">
-                        <div class="card stat-card p-3 border-0 bg-white">
-                            <div class="text-muted small fw-semibold text-uppercase">Completed &amp; Sealed</div>
-                            <h3 class="fw-bold mb-1 text-success">${stats.completedDocuments}</h3>
-                            <div class="text-muted small">With SHA-256 certificate</div>
-                        </div>
-                    </div>
-                    <div class="col-6 col-lg-3">
-                        <div class="card stat-card p-3 border-0 bg-white">
-                            <div class="text-muted small fw-semibold text-uppercase">Drafts</div>
-                            <h3 class="fw-bold mb-1 text-muted">${stats.draftDocuments}</h3>
-                            <div class="text-muted small">Ready for signers</div>
+                    <div class="col-md-4">
+                        <div class="stat-card">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <span class="text-muted small fw-semibold">${t('completedDocs')}</span>
+                                <i class="fa-solid fa-circle-check text-success fs-5"></i>
+                            </div>
+                            <h3 class="fw-bold mb-0 text-success">${stats.completedDocuments}</h3>
                         </div>
                     </div>
                 </div>
 
-                <div class="row g-4">
-                    <div class="col-lg-8">
-                        <div class="card border-0 bg-white h-100">
-                            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                                <span class="fw-bold"><i class="fa-solid fa-folder-open text-primary me-2"></i> Recent Documents</span>
-                                <a href="#/documents" class="small text-primary fw-semibold text-decoration-none">View All <i class="fa-solid fa-arrow-right ms-1"></i></a>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light small text-muted text-uppercase">
-                                        <tr>
-                                            <th class="ps-3">Document</th>
-                                            <th>Status</th>
-                                            <th>Date</th>
-                                            <th class="text-end pe-3">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${stats.recentDocuments && stats.recentDocuments.length > 0 ? stats.recentDocuments.map(d => `
-                                            <tr>
-                                                <td class="ps-3">
-                                                    <div class="fw-bold text-truncate" style="max-width: 250px;">
-                                                        <a href="#/documents/${d.id}" class="text-decoration-none text-dark">${d.title}</a>
-                                                    </div>
-                                                    <div class="small text-muted">${d.pages} pgs • ${d.fileName}</div>
-                                                </td>
-                                                <td><span class="badge rounded-pill px-2 py-1 badge-status-${d.status}">${d.status}</span></td>
-                                                <td class="small text-muted">${new Date(d.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                                                <td class="text-end pe-3">
-                                                    <a href="#/documents/${d.id}" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-eye"></i></a>
-                                                </td>
-                                            </tr>
-                                        `).join('') : `<tr><td colspan="4" class="text-center py-4 text-muted">No documents uploaded yet. <a href="#/upload">Upload your first PDF</a></td></tr>`}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                <!-- Recent Documents Table -->
+                <div class="card border-0 shadow-sm bg-white">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+                        <span class="fw-bold"><i class="fa-solid fa-folder-open text-primary me-2"></i> ${t('recentDocsTitle')}</span>
+                        <a href="#/documents" class="small text-primary fw-semibold text-decoration-none">${t('viewAll')} <i class="fa-solid fa-arrow-right ms-1"></i></a>
                     </div>
-
-                    <div class="col-lg-4">
-                        <div class="card border-0 bg-white h-100">
-                            <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-                                <span class="fw-bold"><i class="fa-solid fa-link text-primary me-2"></i> Chained Audit Stream</span>
-                                <span class="badge bg-success-subtle text-success small">Immutable</span>
-                            </div>
-                            <div class="card-body p-3" style="max-height: 440px; overflow-y: auto;">
-                                ${stats.recentActivity && stats.recentActivity.length > 0 ? stats.recentActivity.map(a => `
-                                    <div class="mb-3 pb-3 border-bottom">
-                                        <div class="d-flex justify-content-between small">
-                                            <span class="badge bg-light text-dark font-monospace">${a.action}</span>
-                                            <span class="text-muted">${new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                        </div>
-                                        <div class="small text-muted mt-1 text-break">${a.details}</div>
-                                        <div class="small font-monospace text-muted mt-1" style="font-size: 0.68rem;">Hash: ${a.currentHash ? a.currentHash.substring(0, 16) + '...' : ''}</div>
-                                    </div>
-                                `).join('') : `<div class="text-muted text-center py-4 small">No activity logged yet.</div>`}
-                            </div>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small text-muted text-uppercase">
+                                <tr>
+                                    <th class="ps-3">${t('colDoc')}</th>
+                                    <th>${t('colStatus')}</th>
+                                    <th>${t('colDate')}</th>
+                                    <th class="text-end pe-3">${t('colActions')}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${stats.recentDocuments && stats.recentDocuments.length > 0 ? stats.recentDocuments.map(d => `
+                                    <tr>
+                                        <td class="ps-3">
+                                            <div class="fw-bold text-truncate" style="max-width: 280px;">
+                                                <a href="#/documents/${d.id}" class="text-decoration-none text-dark">${d.title}</a>
+                                            </div>
+                                            <div class="small text-muted">${d.pages || 1} pgs • ${d.fileName}</div>
+                                        </td>
+                                        <td><span class="badge rounded-pill px-2 py-1 badge-status-${d.status}">${d.status}</span></td>
+                                        <td class="small text-muted">${new Date(d.createdAt).toLocaleDateString()}</td>
+                                        <td class="text-end pe-3">
+                                            <a href="#/documents/${d.id}" class="btn btn-sm btn-outline-primary"><i class="fa-solid fa-eye me-1"></i> View</a>
+                                        </td>
+                                    </tr>
+                                `).join('') : `<tr><td colspan="4" class="text-center py-4 text-muted">${t('noDocsFound')}</td></tr>`}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -863,47 +882,39 @@ async function renderDocumentDetails(container, id) {
     }
 }
 
-// 7. Upload View
+// 7. Simple, Ordinary Upload View
 function renderUpload(container) {
     container.innerHTML = `
-        <div class="container py-5" style="max-width: 720px;">
-            <div class="card border-0 shadow-sm p-4 p-md-5 bg-white">
-                <div class="mb-4">
-                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i> Upload New Document</h4>
-                    <p class="text-muted small">Upload an agreement PDF to place signatures and invite counter-parties.</p>
+        <div class="container py-5" style="max-width: 680px;">
+            <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="border-radius: 12px;">
+                <div class="mb-4 text-center">
+                    <h4 class="fw-bold mb-1"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i> ${t('uploadTitle')}</h4>
+                    <p class="text-muted small">${t('uploadSub')}</p>
                 </div>
 
                 <form id="uploadForm">
                     <div class="mb-4">
-                        <label class="form-label fw-semibold small">Document PDF File</label>
-                        <div class="upload-dropzone" id="dropzoneBox" onclick="document.getElementById('fileInput').click()">
-                            <i class="fa-solid fa-file-arrow-up text-primary fs-1 mb-2"></i>
-                            <h6 class="fw-bold mb-1" id="dropLabel">Click to browse or drag &amp; drop PDF here</h6>
-                            <p class="text-muted small mb-0">Supported: PDF up to 25 MB</p>
-                            <p class="text-primary small mt-2 mb-0 fw-semibold"><i class="fa-solid fa-magic-wand-sparkles me-1"></i> Tip: Leave empty to auto-generate a sample agreement!</p>
+                        <div class="upload-dropzone p-4" id="dropzoneBox" onclick="document.getElementById('fileInput').click()">
+                            <i class="fa-solid fa-file-pdf text-primary fs-1 mb-2"></i>
+                            <h6 class="fw-bold mb-1" id="dropLabel">${t('clickToUpload')}</h6>
+                            <p class="text-muted small mb-0">PDF up to 25 MB</p>
                         </div>
                         <input type="file" id="fileInput" accept="application/pdf" class="d-none">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small">Document Title</label>
-                        <input type="text" id="docTitle" class="form-control" placeholder="e.g. Master Services Agreement - 2026">
+                        <label class="form-label fw-semibold small">${t('docTitleLabel')} *</label>
+                        <input type="text" id="docTitle" class="form-control" placeholder="${t('docTitlePlaceholder')}" required>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small">Description / Notes (Optional)</label>
-                        <textarea id="docDesc" class="form-control" rows="2" placeholder="Brief notes for internal reference..."></textarea>
+                        <label class="form-label fw-semibold small">${t('docDescLabel')}</label>
+                        <textarea id="docDesc" class="form-control" rows="2" placeholder="Notes for your reference..."></textarea>
                     </div>
 
-                    <div class="form-check mb-4">
-                        <input class="form-check-input" type="checkbox" id="seqSigning">
-                        <label class="form-check-label small fw-semibold" for="seqSigning">Sequential Signing Order</label>
-                        <div class="form-text small">Signer 2 is invited only after Signer 1 completes their execution.</div>
-                    </div>
-
-                    <div class="d-flex justify-content-between pt-3 border-top">
-                        <a href="#/documents" class="btn btn-outline-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-arrow-right me-1"></i> Upload &amp; Next</button>
+                    <div class="d-flex justify-content-between pt-3 border-top mt-4">
+                        <a href="#/documents" class="btn btn-outline-secondary">${t('cancel')}</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-arrow-right me-1"></i> ${t('btnUploadNext')}</button>
                     </div>
                 </form>
             </div>
@@ -915,7 +926,7 @@ function renderUpload(container) {
 
     fileInput.onchange = () => {
         if (fileInput.files[0]) {
-            document.getElementById('dropLabel').innerHTML = `<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i> Selected: ${fileInput.files[0].name} (${Math.round(fileInput.files[0].size / 1024)} KB)</span>`;
+            document.getElementById('dropLabel').innerHTML = `<span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> ${fileInput.files[0].name}</span>`;
         }
     };
 
@@ -923,15 +934,15 @@ function renderUpload(container) {
         ['dragenter', 'dragover'].forEach(name => {
             dropzoneBox.addEventListener(name, (e) => {
                 e.preventDefault();
-                dropzoneBox.style.borderColor = '#4f46e5';
-                dropzoneBox.style.background = '#f5f3ff';
+                dropzoneBox.style.borderColor = '#2563eb';
+                dropzoneBox.style.background = '#eff6ff';
             });
         });
         ['dragleave', 'drop'].forEach(name => {
             dropzoneBox.addEventListener(name, (e) => {
                 e.preventDefault();
                 dropzoneBox.style.borderColor = '#cbd5e1';
-                dropzoneBox.style.background = '#ffffff';
+                dropzoneBox.style.background = '#f8fafc';
             });
         });
         dropzoneBox.addEventListener('drop', (e) => {
@@ -945,10 +956,10 @@ function renderUpload(container) {
     document.getElementById('uploadForm').onsubmit = async (e) => {
         e.preventDefault();
         const fd = new FormData();
-        const title = document.getElementById('docTitle').value.trim() || 'Service Agreement';
+        const title = document.getElementById('docTitle').value.trim() || 'Agreement';
         fd.append('title', title);
         fd.append('description', document.getElementById('docDesc').value.trim());
-        fd.append('sequentialSigning', document.getElementById('seqSigning').checked);
+        fd.append('sequentialSigning', false);
 
         if (fileInput.files[0]) {
             fd.append('file', fileInput.files[0]);
@@ -964,7 +975,7 @@ function renderUpload(container) {
     };
 }
 
-// 8. Send for Signature View
+// 8. Simple, Ordinary Send Invites View
 async function renderSend(container, docId) {
     container.innerHTML = `<div class="p-5 text-center"><i class="fa-solid fa-spinner fa-spin fs-2 text-primary"></i></div>`;
 
@@ -972,17 +983,16 @@ async function renderSend(container, docId) {
         const docs = await api.getDocuments('DRAFT');
 
         container.innerHTML = `
-            <div class="container py-4" style="max-width: 820px;">
-                <div class="card border-0 shadow-sm p-4 p-md-5 bg-white">
+            <div class="container py-4" style="max-width: 760px;">
+                <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="border-radius: 12px;">
                     <div class="mb-4">
-                        <div class="badge bg-primary-subtle text-primary fw-semibold px-3 py-1 rounded-pill mb-2">Step 2: Signer Setup</div>
-                        <h4 class="fw-bold mb-1"><i class="fa-solid fa-paper-plane text-primary me-2"></i> Configure &amp; Dispatch Invites</h4>
-                        <p class="text-muted small">Add the counter-parties who need to execute this agreement. Each will receive an OTP-verified signing link.</p>
+                        <h4 class="fw-bold mb-1"><i class="fa-solid fa-paper-plane text-primary me-2"></i> ${t('sendTitle')}</h4>
+                        <p class="text-muted small">${t('sendSub')}</p>
                     </div>
 
                     <form id="sendForm">
                         <div class="mb-3">
-                            <label class="form-label fw-semibold small">Target Agreement</label>
+                            <label class="form-label fw-semibold small">${t('colDoc')}</label>
                             <select id="targetDoc" class="form-select" required>
                                 ${docs.map(d => `<option value="${d.id}" ${d.id === docId ? 'selected' : ''}>${d.title} (${d.fileName})</option>`).join('')}
                             </select>
@@ -990,65 +1000,36 @@ async function renderSend(container, docId) {
 
                         <div class="mb-3">
                             <label class="form-label fw-semibold small">Email Subject</label>
-                            <input type="text" id="reqTitle" class="form-control" value="Please Review and Sign Agreement" required>
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label fw-semibold small">Message to Signers (Optional)</label>
-                            <textarea id="reqMsg" class="form-control" rows="2" placeholder="Please review and complete electronic execution at your earliest convenience."></textarea>
+                            <input type="text" id="reqTitle" class="form-control" value="Please Review and Sign Document" required>
                         </div>
 
                         <!-- Dynamic Signers -->
                         <div class="mb-4">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label fw-bold mb-0">Signatories</label>
+                                <label class="form-label fw-bold mb-0">${t('signerNumber')}</label>
                                 <button type="button" class="btn btn-outline-primary btn-sm" id="addSignerBtn">
-                                    <i class="fa-solid fa-user-plus me-1"></i> Add Another Signer
+                                    ${t('btnAddSigner')}
                                 </button>
                             </div>
                             <div id="signersList">
                                 <div class="p-3 bg-light rounded-3 border mb-2 signer-row">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="badge bg-primary fw-bold">Signer #1</span>
-                                    </div>
                                     <div class="row g-2">
-                                        <div class="col-md-4"><input type="text" class="form-control form-control-sm signer-name" placeholder="Full Name *" required></div>
-                                        <div class="col-md-5"><input type="email" class="form-control form-control-sm signer-email" placeholder="Email Address *" required></div>
-                                        <div class="col-md-3"><input type="tel" class="form-control form-control-sm signer-phone" placeholder="Mobile (+91)"></div>
+                                        <div class="col-md-5"><input type="text" class="form-control form-control-sm signer-name" placeholder="${t('fullName')} *" required></div>
+                                        <div class="col-md-5"><input type="email" class="form-control form-control-sm signer-email" placeholder="${t('emailAddress')} *" required></div>
+                                        <div class="col-md-2"><input type="tel" class="form-control form-control-sm signer-phone" placeholder="Mobile"></div>
                                     </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mb-4 p-3 bg-light rounded-3 border">
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold small">Due Date</label>
-                                <input type="date" id="dueDate" class="form-control form-control-sm">
-                            </div>
-                            <div class="col-md-6 d-flex align-items-center pt-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="seqCheck" value="true">
-                                    <label class="form-check-label small fw-semibold" for="seqCheck">Sequential Routing</label>
                                 </div>
                             </div>
                         </div>
 
                         <div class="d-flex justify-content-between pt-3 border-top">
-                            <a href="#/documents" class="btn btn-outline-secondary">Cancel</a>
-                            <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-paper-plane me-1"></i> Dispatch Signing Invites</button>
+                            <a href="#/documents" class="btn btn-outline-secondary">${t('cancel')}</a>
+                            <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-paper-plane me-1"></i> ${t('btnSendInvites')}</button>
                         </div>
                     </form>
                 </div>
             </div>
         `;
-
-        const dueDateInput = document.getElementById('dueDate');
-        if (dueDateInput) {
-            const today = new Date().toISOString().split('T')[0];
-            const nextWeek = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
-            dueDateInput.min = today;
-            dueDateInput.value = nextWeek;
-        }
 
         let count = 1;
         document.getElementById('addSignerBtn').onclick = () => {
@@ -1058,15 +1039,15 @@ async function renderSend(container, docId) {
             row.className = 'p-3 bg-light rounded-3 border mb-2 signer-row';
             row.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="badge bg-secondary fw-bold">Signer #${count}</span>
+                    <span class="badge bg-secondary">${t('signerNumber')} #${count}</span>
                     <button type="button" class="btn btn-link text-danger p-0 small text-decoration-none" onclick="this.closest('.signer-row').remove()">
                         <i class="fa-solid fa-trash me-1"></i> Remove
                     </button>
                 </div>
                 <div class="row g-2">
-                    <div class="col-md-4"><input type="text" class="form-control form-control-sm signer-name" placeholder="Full Name *" required></div>
-                    <div class="col-md-5"><input type="email" class="form-control form-control-sm signer-email" placeholder="Email Address *" required></div>
-                    <div class="col-md-3"><input type="tel" class="form-control form-control-sm signer-phone" placeholder="Mobile (+91)"></div>
+                    <div class="col-md-5"><input type="text" class="form-control form-control-sm signer-name" placeholder="${t('fullName')} *" required></div>
+                    <div class="col-md-5"><input type="email" class="form-control form-control-sm signer-email" placeholder="${t('emailAddress')} *" required></div>
+                    <div class="col-md-2"><input type="tel" class="form-control form-control-sm signer-phone" placeholder="Mobile"></div>
                 </div>
             `;
             list.appendChild(row);
@@ -1088,9 +1069,9 @@ async function renderSend(container, docId) {
             const data = {
                 documentId: document.getElementById('targetDoc').value,
                 title: document.getElementById('reqTitle').value.trim(),
-                message: document.getElementById('reqMsg').value.trim(),
-                dueDate: document.getElementById('dueDate').value || null,
-                sequentialSigning: document.getElementById('seqCheck').checked,
+                message: '',
+                dueDate: null,
+                sequentialSigning: false,
                 signers
             };
 
@@ -1098,10 +1079,10 @@ async function renderSend(container, docId) {
                 const res = await api.createSigningRequest(data);
                 let linksMsg = '';
                 if (res.signers && res.signers.length > 0) {
-                    linksMsg = res.signers.map(s => `\n• Signer: ${s.name} (${s.email})\n  Link: ${window.location.origin}/#/sign/${s.token}`).join('\n');
+                    linksMsg = res.signers.map(s => `\n• ${s.name} (${s.email}):\n  ${window.location.origin}/#/sign/${s.token}`).join('\n');
                 }
-                alert('✅ Agreement Dispatched Successfully!\n\nInvitation email has been sent via Gmail.' + (linksMsg ? '\n\nDirect Signing Link (Copy to share via WhatsApp/Chat):\n' + linksMsg : ''));
-                showToast('Signing request dispatched successfully! Email invites sent via Gmail.');
+                alert('✅ ' + t('dispatchedSuccess') + (linksMsg ? '\n\nDirect Signing Links (Copy to share):\n' + linksMsg : ''));
+                showToast(t('dispatchedSuccess'));
                 window.location.hash = `#/documents/${data.documentId}`;
             } catch (err) {
                 showToast(err.message, 'danger');
@@ -1139,19 +1120,32 @@ async function renderSignerPage(container, token) {
                     <div class="d-flex align-items-center">
                         <i class="fa-solid fa-file-signature text-primary fs-3 me-2"></i>
                         <span class="fs-4 fw-bold text-primary">Sign<span class="text-dark">Ease</span></span>
-                        <span class="badge bg-primary-subtle text-primary ms-2 rounded-pill small">Public Signer Portal</span>
+                        <span class="badge bg-primary-subtle text-primary ms-2 rounded-pill small">${t('signerWelcome')}</span>
                     </div>
-                    <div class="small text-muted">Requested by <strong>${ctx.senderName}</strong></div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-globe me-1"></i> ${getLang() === 'hi' ? '🇮🇳 हिन्दी' : (getLang() === 'mr' ? '🇮🇳 मराठी' : (getLang() === 'gu' ? '🇮🇳 ગુજરાતી' : '🌐 Language'))}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                                <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="window.changeAppLanguage('en')">🇬🇧 English</a></li>
+                                <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="window.changeAppLanguage('hi')">🇮🇳 हिन्दी (Hindi)</a></li>
+                                <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="window.changeAppLanguage('mr')">🇮🇳 मराठी (Marathi)</a></li>
+                                <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="window.changeAppLanguage('gu')">🇮🇳 ગુજરાતી (Gujarati)</a></li>
+                            </ul>
+                        </div>
+                        <div class="small text-muted d-none d-sm-block">${t('requestedBy')} <strong>${ctx.senderName}</strong></div>
+                    </div>
                 </div>
 
                 <div class="card border-0 shadow-sm bg-white p-4 p-md-5 mb-4">
                     <div class="border-bottom pb-3 mb-4 d-flex justify-content-between align-items-start">
                         <div>
-                            <span class="badge bg-warning-subtle text-warning fw-bold mb-1">Awaiting Your Signature</span>
+                            <span class="badge bg-warning-subtle text-warning fw-bold mb-1">Awaiting Signature</span>
                             <h4 class="fw-bold mb-1">${ctx.documentTitle}</h4>
                             <div class="text-muted small">Signer: <strong>${ctx.signerName}</strong> (${ctx.signerEmail})</div>
                         </div>
-                        <a href="${api.getSigningPreviewUrl(token)}" target="_blank" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Open Full PDF</a>
+                        <a href="${api.getSigningPreviewUrl(token)}" target="_blank" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Open PDF</a>
                     </div>
 
                     <!-- In-Browser Document Preview -->
@@ -1167,15 +1161,15 @@ async function renderSignerPage(container, token) {
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <span class="fw-bold small text-uppercase"><i class="fa-solid fa-shield-halved text-primary me-1"></i> Step 1: Identity Verification (OTP)</span>
-                                <div class="small text-muted" id="otpText">${ctx.otpVerified ? '<i class="fa-solid fa-circle-check text-success me-1"></i> Identity Verified via OTP Passcode' : 'A 6-digit passcode will be dispatched to verify your identity.'}</div>
+                                <div class="small text-muted" id="otpText">${ctx.otpVerified ? '<i class="fa-solid fa-circle-check text-success me-1"></i> Identity Verified via OTP' : t('otpNotice')}</div>
                             </div>
-                            ${!ctx.otpVerified ? `<button type="button" class="btn btn-sm btn-primary" id="getOtpBtn"><i class="fa-solid fa-paper-plane me-1"></i> Send OTP Code</button>` : ''}
+                            ${!ctx.otpVerified ? `<button type="button" class="btn btn-sm btn-primary" id="getOtpBtn"><i class="fa-solid fa-paper-plane me-1"></i> ${t('btnGetOtp')}</button>` : ''}
                         </div>
 
                         <div id="otpInputArea" class="mt-3 pt-3 border-top" style="display: none;">
                             <div class="row g-2 align-items-center">
                                 <div class="col-sm-5"><input type="text" id="signerOtp" class="form-control text-center fw-bold fs-6 font-monospace" placeholder="6-digit code" maxlength="6"></div>
-                                <div class="col-sm-4"><button type="button" class="btn btn-sm btn-success w-100 fw-semibold" id="verifyOtpBtn">Verify Code</button></div>
+                                <div class="col-sm-4"><button type="button" class="btn btn-sm btn-success w-100 fw-semibold" id="verifyOtpBtn">${t('btnVerifyOtp')}</button></div>
                             </div>
                             <div id="otpMsg" class="small mt-2"></div>
                         </div>
@@ -1186,8 +1180,8 @@ async function renderSignerPage(container, token) {
                         <label class="form-label fw-bold small text-muted text-uppercase mb-2"><i class="fa-solid fa-pen-nib text-primary me-1"></i> Step 2: Adopt Signature</label>
 
                         <ul class="nav nav-tabs nav-fill mb-3" id="sigModeTab">
-                            <li class="nav-item"><button class="nav-link active fw-semibold" data-mode="DRAWN" type="button"><i class="fa-solid fa-paintbrush me-1"></i> Draw</button></li>
-                            <li class="nav-item"><button class="nav-link fw-semibold" data-mode="TYPED" type="button"><i class="fa-solid fa-keyboard me-1"></i> Type</button></li>
+                            <li class="nav-item"><button class="nav-link active fw-semibold" data-mode="DRAWN" type="button"><i class="fa-solid fa-paintbrush me-1"></i> ${t('tabDraw')}</button></li>
+                            <li class="nav-item"><button class="nav-link fw-semibold" data-mode="TYPED" type="button"><i class="fa-solid fa-keyboard me-1"></i> ${t('tabType')}</button></li>
                             <li class="nav-item"><button class="nav-link fw-semibold" data-mode="UPLOADED" type="button"><i class="fa-solid fa-arrow-up-from-bracket me-1"></i> Upload</button></li>
                             <li class="nav-item"><button class="nav-link fw-semibold text-primary" data-mode="AADHAAR_ESIGN" type="button"><i class="fa-solid fa-id-card me-1"></i> Aadhaar e-Sign <span class="badge bg-warning text-dark small ms-1">UIDAI</span></button></li>
                         </ul>
@@ -1201,7 +1195,7 @@ async function renderSignerPage(container, token) {
                                     <button type="button" class="btn btn-outline-dark active" id="penBlack">Black</button>
                                     <button type="button" class="btn btn-outline-primary" id="penBlue">Blue</button>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" id="clearCanvasBtn"><i class="fa-solid fa-rotate-left me-1"></i> Clear</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="clearCanvasBtn"><i class="fa-solid fa-rotate-left me-1"></i> ${t('btnClear')}</button>
                             </div>
                         </div>
 
@@ -1266,7 +1260,7 @@ async function renderSignerPage(container, token) {
 
                     <div class="d-flex justify-content-between align-items-center">
                         <button type="button" class="btn btn-outline-danger btn-sm" id="declineBtn"><i class="fa-solid fa-xmark me-1"></i> Decline</button>
-                        <button type="button" class="btn btn-success btn-lg px-4 fw-bold shadow" id="executeBtn"><i class="fa-solid fa-signature me-2"></i> Execute &amp; Seal Document</button>
+                        <button type="button" class="btn btn-success btn-lg px-4 fw-bold shadow" id="executeBtn"><i class="fa-solid fa-signature me-2"></i> ${t('btnCompleteSigning')}</button>
                     </div>
                 </div>
             </div>
@@ -1591,19 +1585,19 @@ async function renderVerify(container, initialHash = '') {
         <div class="container py-5" style="max-width: 860px;">
             <div class="text-center mb-4">
                 <div class="badge bg-success-subtle text-success fw-bold px-3 py-1 rounded-pill mb-2">
-                    <i class="fa-solid fa-shield-halved me-1"></i> Independent Cryptographic Verification
+                    <i class="fa-solid fa-shield-halved me-1"></i> ${t('verifyTitle')}
                 </div>
-                <h3 class="fw-bold">Verify Document Authenticity</h3>
+                <h3 class="fw-bold">${t('verifyTitle')}</h3>
                 <p class="text-muted small mx-auto" style="max-width: 620px;">
-                    Confirm tamper-evident integrity, electronic execution validity, and complete audit chain under Section 10A of the Indian Information Technology Act, 2000.
+                    ${t('verifySub')}
                 </p>
             </div>
 
             <div class="card border-0 shadow-sm bg-white p-4 mb-4">
                 <form id="verifyForm">
                     <div class="input-group">
-                        <input type="text" id="verifyHashInput" class="form-control" placeholder="Enter 64-character SHA-256 hash or Document ID..." value="${initialHash || ''}" required>
-                        <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-magnifying-glass me-1"></i> Verify Hash</button>
+                        <input type="text" id="verifyHashInput" class="form-control" placeholder="${t('pasteHashLabel')}..." value="${initialHash || ''}" required>
+                        <button type="submit" class="btn btn-primary px-4 fw-semibold"><i class="fa-solid fa-magnifying-glass me-1"></i> ${t('btnVerifyNow')}</button>
                     </div>
                 </form>
             </div>
