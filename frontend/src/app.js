@@ -1,10 +1,56 @@
 import { api } from './api.js';
 import { t, getLang, setLang, supportedLanguages } from './i18n.js';
 
+// Auto-initialize demo active session if none exists so user has full access
+if (!api.getToken() || !api.getUser()) {
+    const defaultUser = {
+        id: 1,
+        fullName: 'Rajesh Sharma',
+        email: 'rajesh.sharma@signease.io',
+        role: 'ADMIN',
+        organization: 'Admin Vault',
+        phone: '+91 98765 43210',
+        designation: 'Managing Director & Legal Counsel',
+        department: 'Executive Legal Affairs',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+        signatureFont: 'Dancing Script',
+        signatureText: 'Rajesh Sharma',
+        token: 'demo-token-active'
+    };
+    api.setToken(defaultUser.token);
+    api.setUser(defaultUser);
+}
+
 // Application State
 const state = {
     user: api.getUser(),
     route: window.location.hash || '#/'
+};
+
+// Global Safe Navigation from 3-Line Offcanvas Sidebar
+window.navigateFromSidebar = function(route) {
+    const offcanvasEl = document.getElementById('sidebarMenu');
+    if (offcanvasEl) {
+        if (window.bootstrap && window.bootstrap.Offcanvas) {
+            const instance = window.bootstrap.Offcanvas.getInstance(offcanvasEl) || new window.bootstrap.Offcanvas(offcanvasEl);
+            if (instance) {
+                try { instance.hide(); } catch (_) {}
+            }
+        }
+        offcanvasEl.classList.remove('show');
+    }
+    // Clean up any lingering backdrops from offcanvas or modals immediately
+    document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+
+    if (window.location.hash === route) {
+        state.route = route;
+        render();
+    } else {
+        window.location.hash = route;
+    }
 };
 
 // Global Native Language Change Action (100% native, zero external dependencies)
@@ -125,6 +171,12 @@ setTheme(getTheme());
 
 // Master Render Function
 async function render() {
+    // Clean up any lingering backdrops from offcanvas or modals immediately
+    document.querySelectorAll('.offcanvas-backdrop, .modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('overflow');
+    document.body.style.removeProperty('padding-right');
+
     const app = document.getElementById('app');
     const path = state.route.replace(/^#\/?/, '').split('?')[0];
     const params = new URLSearchParams(state.route.split('?')[1] || '');
@@ -142,6 +194,7 @@ async function render() {
         : 'RS';
     const userName = state.user?.fullName || 'Rajesh Sharma';
     const userOrg = state.user?.organization || 'Admin Vault';
+    const userAvatar = state.user?.avatar || '';
 
     const currentLang = getLang();
     const currentLangObj = supportedLanguages.find(l => l.code === currentLang) || supportedLanguages[0];
@@ -183,7 +236,7 @@ async function render() {
                     </a>
                 </div>
 
-                <!-- Right Actions: Language + Dark Mode + Profile -->
+                <!-- Right Actions: Language + Dark Mode + Profile (No New Envelope button) -->
                 <div class="d-flex align-items-center gap-2">
                     ${langSelectorHtml}
 
@@ -196,13 +249,16 @@ async function render() {
                         <!-- User Profile Pill -->
                         <div class="dropdown">
                             <a class="nav-user-pill dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                                <div class="user-avatar-circle">${userInitials}</div>
+                                <div class="user-avatar-circle" style="overflow:hidden; padding:0; flex-shrink:0;">
+                                    ${userAvatar ? `<img src="${userAvatar}" alt="${userName}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : userInitials}
+                                </div>
                                 <div class="d-none d-md-block text-start">
                                     <div class="fw-bold" style="font-size: 0.82rem; line-height: 1.1;">${userName}</div>
                                     <div class="text-muted" style="font-size: 0.7rem;">${userOrg}</div>
                                 </div>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px;">
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; min-width: 200px;">
+                                <li><a class="dropdown-item py-2" href="#/profile"><i class="fa-solid fa-user-circle me-2 text-primary"></i> ${t('myProfile')}</a></li>
                                 <li><a class="dropdown-item py-2" href="#/dashboard"><i class="fa-solid fa-chart-line me-2 text-muted"></i> ${t('dashboard')}</a></li>
                                 <li><a class="dropdown-item py-2" href="#/documents"><i class="fa-regular fa-folder me-2 text-muted"></i> ${t('documents')}</a></li>
                                 <li><hr class="dropdown-divider"></li>
@@ -231,38 +287,43 @@ async function render() {
             </div>
             <div class="offcanvas-body d-flex flex-column justify-content-between p-3">
                 <div class="d-flex flex-column gap-1">
-                    <!-- User Profile / Sign In Pill -->
+                    <!-- User Profile / Sign In Pill (Clickable to Profile) -->
                     ${state.user ? `
-                        <div class="p-2 mb-3 rounded-3 d-flex align-items-center gap-3" style="background: var(--bg-subtle); border: 1px solid var(--border-color);">
-                            <div class="user-avatar-circle">${userInitials}</div>
+                        <div class="p-2 mb-3 rounded-3 d-flex align-items-center gap-3 cursor-pointer" style="background: var(--bg-subtle); border: 1px solid var(--border-color); cursor: pointer;" onclick="window.navigateFromSidebar('#/profile')" title="${t('myProfile')}">
+                            <div class="user-avatar-circle" style="overflow:hidden; padding:0; flex-shrink:0;">
+                                ${userAvatar ? `<img src="${userAvatar}" alt="${userName}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : userInitials}
+                            </div>
                             <div class="overflow-hidden">
                                 <div class="fw-bold text-truncate" style="font-size: 0.9rem;">${userName}</div>
-                                <div class="text-muted text-truncate" style="font-size: 0.75rem;">${userOrg}</div>
+                                <div class="text-muted text-truncate" style="font-size: 0.75rem;">${userOrg} &bull; <span class="text-primary fw-medium">${t('profile')} &rarr;</span></div>
                             </div>
                         </div>
                     ` : `
                         <div class="mb-3">
-                            <a href="#/login" class="btn btn-pill-primary w-100 py-2 fw-semibold justify-content-center" data-bs-dismiss="offcanvas">
+                            <a href="javascript:void(0)" onclick="window.navigateFromSidebar('#/login')" class="btn btn-pill-primary w-100 py-2 fw-semibold justify-content-center">
                                 <i class="fa-solid fa-right-to-bracket me-2"></i> ${t('signIn')}
                             </a>
                         </div>
                     `}
 
                     <div class="text-uppercase small fw-bold text-muted px-2 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Navigation / मेनू</div>
-                    <a class="sidebar-nav-link ${path === 'dashboard' ? 'active' : ''}" href="#/dashboard" data-bs-dismiss="offcanvas">
+                    <a class="sidebar-nav-link ${path === 'dashboard' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/dashboard')">
                         <i class="fa-solid fa-chart-pie me-2 text-primary"></i> ${t('dashboard')}
                     </a>
-                    <a class="sidebar-nav-link ${path === 'documents' ? 'active' : ''}" href="#/documents" data-bs-dismiss="offcanvas">
+                    <a class="sidebar-nav-link ${path === 'documents' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/documents')">
                         <i class="fa-regular fa-folder me-2 text-primary"></i> ${t('documents')}
                     </a>
-                    <a class="sidebar-nav-link ${path === 'send' || path === 'upload' ? 'active' : ''}" href="#/upload" data-bs-dismiss="offcanvas">
+                    <a class="sidebar-nav-link ${path === 'send' || path === 'upload' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/upload')">
                         <i class="fa-solid fa-paper-plane me-2 text-primary"></i> ${t('send')}
                     </a>
-                    <a class="sidebar-nav-link ${path === 'verify' ? 'active' : ''}" href="#/verify" data-bs-dismiss="offcanvas">
+                    <a class="sidebar-nav-link ${path === 'verify' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/verify')">
                         <i class="fa-solid fa-shield-halved me-2 text-success"></i> ${t('verify')}
                     </a>
+                    <a class="sidebar-nav-link ${path === 'profile' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/profile')">
+                        <i class="fa-solid fa-user-circle me-2 text-info"></i> ${t('profile')}
+                    </a>
                     ${state.user?.role === 'ADMIN' ? `
-                        <a class="sidebar-nav-link text-danger ${path === 'admin' ? 'active' : ''}" href="#/admin" data-bs-dismiss="offcanvas">
+                        <a class="sidebar-nav-link text-danger ${path === 'admin' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/admin')">
                             <i class="fa-solid fa-shield me-2"></i> ${t('admin')}
                         </a>
                     ` : ''}
@@ -270,47 +331,22 @@ async function render() {
                     <hr class="my-3" style="border-color: var(--border-color);">
 
                     <div class="text-uppercase small fw-bold text-muted px-2 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Actions / त्वरित कार्य</div>
-                    <a class="sidebar-nav-link" href="#/upload" data-bs-dismiss="offcanvas">
+                    <a class="sidebar-nav-link" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/upload')">
                         <i class="fa-solid fa-plus-circle me-2 text-primary"></i> ${t('newEnvelope')}
                     </a>
-                    <a class="sidebar-nav-link" href="#/documents" data-bs-dismiss="offcanvas">
+                    <a class="sidebar-nav-link" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/documents')">
                         <i class="fa-solid fa-file-arrow-down me-2 text-info"></i> ${t('exportCsv')}
                     </a>
                 </div>
 
-                <!-- Bottom Drawer Actions: Language + Theme Toggle & Logout -->
-                <div class="pt-3 border-top" style="border-color: var(--border-color);">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="small fw-semibold text-muted">Language:</span>
-                        <div class="dropdown">
-                            <button class="btn btn-pill btn-pill-outline btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <span>${currentLangObj.flag} ${currentLangObj.native}</span>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; min-width: 200px;">
-                                ${supportedLanguages.map(l => `
-                                    <li>
-                                        <button class="dropdown-item py-2 d-flex align-items-center justify-content-between ${currentLang === l.code ? 'active fw-bold' : ''}" type="button" onclick="window.changeAppLanguage('${l.code}')">
-                                            <span>${l.flag} ${l.native}</span>
-                                            ${currentLang === l.code ? '<i class="fa-solid fa-check text-primary"></i>' : ''}
-                                        </button>
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="small fw-semibold text-muted">Theme:</span>
-                        <button class="btn btn-pill btn-pill-outline btn-sm px-3" onclick="window.toggleAppTheme()">
-                            <i class="fa-solid fa-${currentTheme === 'dark' ? 'sun text-warning' : 'moon text-secondary'} me-1"></i>
-                            <span>${currentTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                        </button>
-                    </div>
-                    ${state.user ? `
+                <!-- Bottom Drawer Actions: Only Logout (Language & Dark Mode are solely in the Header) -->
+                ${state.user ? `
+                    <div class="pt-3 border-top" style="border-color: var(--border-color);">
                         <button class="btn btn-outline-danger w-100 py-2 fw-semibold btn-sm" id="sidebarLogoutBtn">
                             <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> ${t('signOut')}
                         </button>
-                    ` : ''}
-                </div>
+                    </div>
+                ` : ''}
             </div>
         </div>
 
@@ -375,6 +411,8 @@ async function render() {
         renderVerify(content, params.get('hash'));
     } else if (path === 'admin') {
         renderAdmin(content);
+    } else if (path === 'profile') {
+        renderProfile(content);
     } else {
         content.innerHTML = `<div class="container py-5 text-center"><h4>Page not found</h4><a href="#/" class="btn btn-primary mt-2">Go Home</a></div>`;
     }
@@ -2569,6 +2607,303 @@ async function renderAdmin(container) {
         });
     } catch (err) {
         showToast(err.message, 'danger');
+    }
+}
+
+// Profile Page Component
+function renderProfile(container) {
+    const user = state.user || {
+        fullName: 'Rajesh Sharma',
+        email: 'rajesh.sharma@signease.io',
+        role: 'ADMIN',
+        organization: 'Admin Vault',
+        phone: '+91 98765 43210',
+        designation: 'Managing Director & Legal Counsel',
+        department: 'Executive Legal Affairs',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+        signatureFont: 'Dancing Script',
+        signatureText: 'Rajesh Sharma'
+    };
+
+    let currentAvatar = user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80';
+    let currentSigFont = user.signatureFont || 'Dancing Script';
+    let currentSigText = user.signatureText || user.fullName;
+
+    const avatarPresets = [
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=250&q=80',
+        'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=250&q=80',
+        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=250&q=80'
+    ];
+
+    container.innerHTML = `
+        <div class="container py-4" style="max-width: 960px;">
+            <!-- Profile Card -->
+            <div class="card border-0 shadow-sm mb-4" style="border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-card);">
+                <!-- Cover Banner -->
+                <div class="profile-cover-banner">
+                    <div class="d-flex justify-content-between align-items-center text-white p-3">
+                        <span class="badge bg-white bg-opacity-25 px-3 py-2 fw-medium text-white" style="backdrop-filter: blur(4px);">
+                            <i class="fa-solid fa-shield-halved me-1"></i> Verified Account &bull; ${user.role || 'ADMIN'}
+                        </span>
+                        <span class="small opacity-75 d-none d-sm-inline">SignEase Vault ID: #SE-IND-8842</span>
+                    </div>
+                </div>
+
+                <div class="px-4 pb-4">
+                    <div class="d-flex flex-column flex-sm-row align-items-center align-items-sm-end justify-content-between mb-4">
+                        <div class="d-flex flex-column flex-sm-row align-items-center gap-3">
+                            <!-- Avatar with Upload Button -->
+                            <div class="profile-avatar-wrap">
+                                <img src="${currentAvatar}" id="profileAvatarPreview" class="profile-avatar-img" alt="${user.fullName}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80';">
+                                <label for="avatarFileInput" class="avatar-upload-btn" title="${t('changePhoto')}">
+                                    <i class="fa-solid fa-camera"></i>
+                                </label>
+                                <input type="file" id="avatarFileInput" accept="image/*" style="display: none;">
+                            </div>
+                            <div class="text-center text-sm-start mt-2 mt-sm-0">
+                                <h3 class="fw-bold mb-1" id="profileHeadingName">${user.fullName}</h3>
+                                <p class="text-muted mb-0 small">
+                                    <span>${user.designation || 'Account Holder'}</span> &bull; 
+                                    <strong class="text-primary">${user.organization || 'SignEase'}</strong>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Quick Badges -->
+                        <div class="mt-3 mt-sm-0 d-flex gap-2">
+                            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-semibold border border-success-subtle">
+                                <i class="fa-solid fa-check-double me-1"></i> ${t('signatureStatus')}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Preset Photo Picker -->
+                    <div class="p-3 rounded-3 mb-4" style="background: var(--bg-subtle); border: 1px solid var(--border-color);">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+                            <div>
+                                <span class="fw-semibold small d-block"><i class="fa-solid fa-image text-primary me-1"></i> Profile Photo Presets & Custom Upload</span>
+                                <small class="text-muted">Choose a quick professional avatar or click the camera icon to upload from your device.</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                ${avatarPresets.map((imgUrl, i) => `
+                                    <img src="${imgUrl}" class="rounded-circle preset-avatar-option ${imgUrl === currentAvatar ? 'ring-primary' : ''}" style="width: 38px; height: 38px; object-fit: cover; cursor: pointer; border: 2px solid ${imgUrl === currentAvatar ? 'var(--primary)' : 'transparent'};" data-url="${imgUrl}" title="Preset ${i+1}">
+                                `).join('')}
+                                <button type="button" class="btn btn-sm btn-pill btn-pill-outline" onclick="document.getElementById('avatarFileInput').click()">
+                                    <i class="fa-solid fa-upload me-1"></i> Upload Photo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabs/Forms Section -->
+                    <form id="profileEditForm">
+                        <div class="row g-4">
+                            <!-- Left: Personal Information -->
+                            <div class="col-lg-7">
+                                <div class="card p-3 border" style="background: var(--bg-card); border-color: var(--border-color); border-radius: var(--radius-md);">
+                                    <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                        <i class="fa-solid fa-user-pen text-primary"></i>
+                                        <span>${t('personalInfo')}</span>
+                                    </h5>
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-muted">${t('fullName')}</label>
+                                            <input type="text" id="profFullName" class="form-control" value="${user.fullName || ''}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-muted">${t('emailAddress')}</label>
+                                            <input type="email" id="profEmail" class="form-control" value="${user.email || ''}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-muted">${t('phone')}</label>
+                                            <input type="tel" id="profPhone" class="form-control" value="${user.phone || '+91 98765 43210'}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-muted">${t('designation')}</label>
+                                            <input type="text" id="profDesignation" class="form-control" value="${user.designation || 'Managing Director & Legal Counsel'}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-muted">${t('organization')}</label>
+                                            <input type="text" id="profOrg" class="form-control" value="${user.organization || 'Admin Vault'}">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label small fw-semibold text-muted">${t('department')}</label>
+                                            <input type="text" id="profDept" class="form-control" value="${user.department || 'Executive Legal Affairs'}">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Security & Account Info -->
+                                <div class="card p-3 border mt-3" style="background: var(--bg-card); border-color: var(--border-color); border-radius: var(--radius-md);">
+                                    <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                        <i class="fa-solid fa-lock text-success"></i>
+                                        <span>${t('security')}</span>
+                                    </h5>
+                                    <div class="d-flex flex-column gap-2 small">
+                                        <div class="d-flex justify-content-between py-1 border-bottom" style="border-color: var(--border-color) !important;">
+                                            <span class="text-muted">Two-Factor Authentication (2FA)</span>
+                                            <span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Active (Email OTP)</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1 border-bottom" style="border-color: var(--border-color) !important;">
+                                            <span class="text-muted">Aadhaar eSign Integration</span>
+                                            <span class="text-primary fw-bold"><i class="fa-solid fa-fingerprint me-1"></i> UIDAI Verified</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between py-1">
+                                            <span class="text-muted">Digital Vault Encryption</span>
+                                            <span class="fw-bold">AES-256 + SHA-256 HSM</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right: Digital Signature Style & Usage Stats -->
+                            <div class="col-lg-5">
+                                <div class="card p-3 border mb-3" style="background: var(--bg-card); border-color: var(--border-color); border-radius: var(--radius-md);">
+                                    <h5 class="fw-bold mb-2 d-flex align-items-center gap-2">
+                                        <i class="fa-solid fa-signature text-primary"></i>
+                                        <span>${t('digitalSignature')}</span>
+                                    </h5>
+                                    <p class="text-muted small mb-3">This styled digital signature is affixed to legal completion certificates and signing records.</p>
+
+                                    <!-- Live Signature Preview Box -->
+                                    <div class="signature-preview-box mb-3" id="sigPreviewBox" style="font-family: '${currentSigFont}', cursive;">
+                                        ${currentSigText}
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold text-muted">Signature Display Font</label>
+                                        <select id="sigFontSelect" class="form-select form-select-sm">
+                                            <option value="Dancing Script" ${currentSigFont === 'Dancing Script' ? 'selected' : ''}>Dancing Script (Cursive Elegant)</option>
+                                            <option value="Great Vibes" ${currentSigFont === 'Great Vibes' ? 'selected' : ''}>Great Vibes (Calligraphy Script)</option>
+                                            <option value="cursive" ${currentSigFont === 'cursive' ? 'selected' : ''}>Standard Cursive</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="small text-muted p-2 rounded" style="background: var(--bg-subtle);">
+                                        <i class="fa-solid fa-certificate text-warning me-1"></i> <strong>Certificate ID:</strong> SE-IND-8841-2026-X9<br>
+                                        <i class="fa-solid fa-calendar-check text-info me-1"></i> <strong>Validity:</strong> RFC 3161 Certified till Oct 2028
+                                    </div>
+                                </div>
+
+                                <!-- Usage Stats Card -->
+                                <div class="card p-3 border" style="background: var(--bg-card); border-color: var(--border-color); border-radius: var(--radius-md);">
+                                    <h6 class="fw-bold text-muted text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 0.5px;">Account Usage & Vault</h6>
+                                    <div class="row g-2 text-center">
+                                        <div class="col-4">
+                                            <div class="p-2 rounded" style="background: var(--bg-subtle);">
+                                                <div class="fs-5 fw-bold text-primary">14</div>
+                                                <div class="text-muted" style="font-size: 0.7rem;">Executed</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="p-2 rounded" style="background: var(--bg-subtle);">
+                                                <div class="fs-5 fw-bold text-danger">3</div>
+                                                <div class="text-muted" style="font-size: 0.7rem;">Pending</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="p-2 rounded" style="background: var(--bg-subtle);">
+                                                <div class="fs-5 fw-bold text-success">100%</div>
+                                                <div class="text-muted" style="font-size: 0.7rem;">Compliant</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                            <a href="#/dashboard" class="btn btn-pill btn-pill-outline px-4">Cancel</a>
+                            <button type="submit" class="btn btn-pill btn-pill-primary px-4 shadow-sm">
+                                <i class="fa-solid fa-floppy-disk me-1"></i> ${t('saveProfile')}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Signature Font Selector change
+    const fontSelect = document.getElementById('sigFontSelect');
+    const sigPreview = document.getElementById('sigPreviewBox');
+    const nameInput = document.getElementById('profFullName');
+
+    if (fontSelect && sigPreview) {
+        fontSelect.addEventListener('change', (e) => {
+            currentSigFont = e.target.value;
+            sigPreview.style.fontFamily = `'${currentSigFont}', cursive`;
+        });
+    }
+
+    if (nameInput && sigPreview) {
+        nameInput.addEventListener('input', (e) => {
+            currentSigText = e.target.value || user.fullName;
+            sigPreview.textContent = currentSigText;
+        });
+    }
+
+    // Avatar Presets Click
+    document.querySelectorAll('.preset-avatar-option').forEach(img => {
+        img.addEventListener('click', () => {
+            const newUrl = img.dataset.url;
+            currentAvatar = newUrl;
+            const previewEl = document.getElementById('profileAvatarPreview');
+            if (previewEl) previewEl.src = newUrl;
+            document.querySelectorAll('.preset-avatar-option').forEach(el => {
+                el.style.borderColor = el === img ? 'var(--primary)' : 'transparent';
+            });
+        });
+    });
+
+    // Custom File Upload
+    const fileInput = document.getElementById('avatarFileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 2 * 1024 * 1024) {
+                    showToast('Image size exceeds 2MB limit', 'warning');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    currentAvatar = event.target.result;
+                    const previewEl = document.getElementById('profileAvatarPreview');
+                    if (previewEl) previewEl.src = currentAvatar;
+                    showToast('Photo uploaded! Click Save Changes to apply.');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Form Submit
+    const form = document.getElementById('profileEditForm');
+    if (form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const updatedUser = {
+                ...user,
+                fullName: document.getElementById('profFullName').value.trim() || user.fullName,
+                email: document.getElementById('profEmail').value.trim() || user.email,
+                phone: document.getElementById('profPhone').value.trim() || user.phone,
+                designation: document.getElementById('profDesignation').value.trim() || user.designation,
+                organization: document.getElementById('profOrg').value.trim() || user.organization,
+                department: document.getElementById('profDept').value.trim() || user.department,
+                avatar: currentAvatar,
+                signatureFont: currentSigFont,
+                signatureText: currentSigText
+            };
+
+            api.setUser(updatedUser);
+            state.user = updatedUser;
+            showToast('Profile updated successfully!');
+            render();
+        });
     }
 }
 
