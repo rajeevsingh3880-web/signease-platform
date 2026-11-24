@@ -163,21 +163,23 @@ async function render() {
         </div>
     `;
 
-    // Modern Header Navbar (Matches User Screenshots 1, 2, 3, 4)
+    // Modern Header Navbar with 3-Line Menu Trigger (Matches User Request & Screenshots)
     let html = `
         <nav class="navbar-custom">
             <div class="container-fluid px-lg-4 d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center gap-3">
-                    <button class="btn btn-link text-decoration-none text-muted p-0 fs-5 d-lg-none" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+                <div class="d-flex align-items-center gap-2">
+                    <!-- 3 Lines Hamburger Menu Button (Always visible on left side) -->
+                    <button class="nav-menu-trigger me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" title="Menu / मेनू">
                         <i class="fa-solid fa-bars"></i>
                     </button>
+
                     <a class="brand-logo" href="#/">
                         <div class="brand-icon"><i class="fa-solid fa-pen-nib"></i></div>
                         <span>Sign<span class="text-primary">Ease</span></span>
                     </a>
 
                     <!-- Desktop Nav Links -->
-                    <div class="d-none d-lg-flex align-items-center gap-1 ms-3">
+                    <div class="d-none d-xl-flex align-items-center gap-1 ms-3">
                         <a class="nav-link ${path === 'dashboard' ? 'active' : ''}" href="#/dashboard"><i class="fa-solid fa-chart-pie me-1"></i> ${t('dashboard')}</a>
                         <a class="nav-link ${path === 'documents' ? 'active' : ''}" href="#/documents"><i class="fa-regular fa-folder me-1"></i> ${t('documents')}</a>
                         <a class="nav-link ${path === 'send' || path === 'upload' ? 'active' : ''}" href="#/upload"><i class="fa-solid fa-paper-plane me-1"></i> ${t('send')}</a>
@@ -226,18 +228,84 @@ async function render() {
                     `}
                 </div>
             </div>
+        </nav>
 
-            <!-- Mobile Menu Dropdown -->
-            <div class="collapse d-lg-none mt-2 px-3 pt-2 border-top" id="navContent">
+        <!-- Left Sidebar Navigation Drawer (Opens from 3 lines icon on left) -->
+        <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel" style="width: 290px;">
+            <div class="offcanvas-header border-bottom py-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="brand-icon"><i class="fa-solid fa-pen-nib"></i></div>
+                    <h5 class="offcanvas-title fw-bold mb-0" id="sidebarMenuLabel">Sign<span class="text-primary">Ease</span></h5>
+                </div>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body d-flex flex-column justify-content-between p-3">
                 <div class="d-flex flex-column gap-1">
-                    <a class="nav-link ${path === 'dashboard' ? 'active' : ''}" href="#/dashboard"><i class="fa-solid fa-chart-pie me-2"></i> ${t('dashboard')}</a>
-                    <a class="nav-link ${path === 'documents' ? 'active' : ''}" href="#/documents"><i class="fa-regular fa-folder me-2"></i> ${t('documents')}</a>
-                    <a class="nav-link ${path === 'send' || path === 'upload' ? 'active' : ''}" href="#/upload"><i class="fa-solid fa-paper-plane me-2"></i> ${t('send')}</a>
-                    <a class="nav-link ${path === 'verify' ? 'active' : ''}" href="#/verify"><i class="fa-solid fa-shield-halved me-2 text-success"></i> ${t('verify')}</a>
-                    ${state.user?.role === 'ADMIN' ? `<a class="nav-link text-danger ${path === 'admin' ? 'active' : ''}" href="#/admin"><i class="fa-solid fa-shield me-2"></i> ${t('admin')}</a>` : ''}
+                    <!-- User Profile / Sign In Pill -->
+                    ${state.user ? `
+                        <div class="p-2 mb-3 rounded-3 d-flex align-items-center gap-3" style="background: var(--bg-subtle); border: 1px solid var(--border-color);">
+                            <div class="user-avatar-circle">${userInitials}</div>
+                            <div class="overflow-hidden">
+                                <div class="fw-bold text-truncate" style="font-size: 0.9rem;">${userName}</div>
+                                <div class="text-muted text-truncate" style="font-size: 0.75rem;">${userOrg}</div>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="mb-3">
+                            <a href="#/login" class="btn btn-pill-primary w-100 py-2 fw-semibold justify-content-center" data-bs-dismiss="offcanvas">
+                                <i class="fa-solid fa-right-to-bracket me-2"></i> ${t('signIn')}
+                            </a>
+                        </div>
+                    `}
+
+                    <div class="text-uppercase small fw-bold text-muted px-2 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Navigation / मेनू</div>
+                    <a class="sidebar-nav-link ${path === 'dashboard' ? 'active' : ''}" href="#/dashboard" data-bs-dismiss="offcanvas">
+                        <i class="fa-solid fa-chart-pie me-2 text-primary"></i> ${t('dashboard')}
+                    </a>
+                    <a class="sidebar-nav-link ${path === 'documents' ? 'active' : ''}" href="#/documents" data-bs-dismiss="offcanvas">
+                        <i class="fa-regular fa-folder me-2 text-primary"></i> ${t('documents')}
+                    </a>
+                    <a class="sidebar-nav-link ${path === 'send' || path === 'upload' ? 'active' : ''}" href="#/upload" data-bs-dismiss="offcanvas">
+                        <i class="fa-solid fa-paper-plane me-2 text-primary"></i> ${t('send')}
+                    </a>
+                    <a class="sidebar-nav-link ${path === 'verify' ? 'active' : ''}" href="#/verify" data-bs-dismiss="offcanvas">
+                        <i class="fa-solid fa-shield-halved me-2 text-success"></i> ${t('verify')}
+                    </a>
+                    ${state.user?.role === 'ADMIN' ? `
+                        <a class="sidebar-nav-link text-danger ${path === 'admin' ? 'active' : ''}" href="#/admin" data-bs-dismiss="offcanvas">
+                            <i class="fa-solid fa-shield me-2"></i> ${t('admin')}
+                        </a>
+                    ` : ''}
+
+                    <hr class="my-3" style="border-color: var(--border-color);">
+
+                    <div class="text-uppercase small fw-bold text-muted px-2 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Actions / त्वरित कार्य</div>
+                    <a class="sidebar-nav-link" href="#/upload" data-bs-dismiss="offcanvas">
+                        <i class="fa-solid fa-plus-circle me-2 text-primary"></i> ${t('newEnvelope')}
+                    </a>
+                    <a class="sidebar-nav-link" href="#/documents" data-bs-dismiss="offcanvas">
+                        <i class="fa-solid fa-file-arrow-down me-2 text-info"></i> ${t('exportCsv')}
+                    </a>
+                </div>
+
+                <!-- Bottom Drawer Actions: Theme Toggle & Logout -->
+                <div class="pt-3 border-top" style="border-color: var(--border-color);">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-semibold text-muted">Theme:</span>
+                        <button class="btn btn-pill btn-pill-outline btn-sm px-3" onclick="window.toggleAppTheme()">
+                            <i class="fa-solid fa-${currentTheme === 'dark' ? 'sun text-warning' : 'moon text-secondary'} me-1"></i>
+                            <span>${currentTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                        </button>
+                    </div>
+                    ${state.user ? `
+                        <button class="btn btn-outline-danger w-100 py-2 fw-semibold btn-sm" id="sidebarLogoutBtn">
+                            <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> ${t('signOut')}
+                        </button>
+                    ` : ''}
                 </div>
             </div>
-        </nav>
+        </div>
+
         <main class="flex-grow-1" id="page-content"></main>
         <footer class="py-3 mt-auto border-top">
             <div class="container-fluid px-lg-4 d-flex flex-wrap justify-content-between align-items-center text-muted small">
@@ -252,15 +320,18 @@ async function render() {
 
     app.innerHTML = html;
 
+    const handleLogout = () => {
+        api.clearToken();
+        state.user = null;
+        showToast('Signed out successfully.');
+        window.location.hash = '#/login';
+    };
+
     const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            api.clearToken();
-            state.user = null;
-            showToast('Signed out successfully.');
-            window.location.hash = '#/login';
-        });
-    }
+    if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
+
+    const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
+    if (sidebarLogoutBtn) sidebarLogoutBtn.addEventListener('click', handleLogout);
 
     const content = document.getElementById('page-content');
 
@@ -358,28 +429,28 @@ function renderLanding(container) {
         </section>
 
         <!-- Clean, Ordinary Feature Highlights -->
-        <section class="py-5 bg-white border-bottom">
+        <section class="py-5 border-bottom" style="background: var(--bg-card);">
             <div class="container px-4" style="max-width: 900px;">
                 <div class="text-center mb-4">
                     <h4 class="fw-bold">${t('whyChooseUs')}</h4>
                 </div>
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <div class="p-3 border rounded-3 bg-light h-100">
+                        <div class="p-3 border rounded-3 h-100" style="background: var(--bg-subtle);">
                             <i class="fa-solid fa-mobile-screen text-primary fs-3 mb-2"></i>
                             <h6 class="fw-bold">${t('feature1Title')}</h6>
                             <p class="text-muted small mb-0">${t('feature1Desc')}</p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="p-3 border rounded-3 bg-light h-100">
+                        <div class="p-3 border rounded-3 h-100" style="background: var(--bg-subtle);">
                             <i class="fa-solid fa-stamp text-success fs-3 mb-2"></i>
                             <h6 class="fw-bold">${t('feature2Title')}</h6>
                             <p class="text-muted small mb-0">${t('feature2Desc')}</p>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="p-3 border rounded-3 bg-light h-100">
+                        <div class="p-3 border rounded-3 h-100" style="background: var(--bg-subtle);">
                             <i class="fa-solid fa-envelope-circle-check text-warning fs-3 mb-2"></i>
                             <h6 class="fw-bold">${t('feature3Title')}</h6>
                             <p class="text-muted small mb-0">${t('feature3Desc')}</p>
@@ -391,40 +462,42 @@ function renderLanding(container) {
     `;
 }
 
-// 2. Simple, Ordinary Login Page
+// 2. Simple, Clean, Ordinary Login Page (Full Dark & Light Mode Support)
 function renderLogin(container) {
     container.innerHTML = `
-        <div class="d-flex align-items-center justify-content-center py-5">
-            <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="max-width: 440px; width: 100%; border-radius: 12px;">
+        <div class="auth-wrapper">
+            <div class="auth-card" style="max-width: 440px;">
                 <div class="text-center mb-4">
-                    <a href="#/" class="text-decoration-none d-inline-flex align-items-center mb-2">
-                        <i class="fa-solid fa-file-signature text-primary fs-2 me-2"></i>
-                        <span class="fs-3 fw-bold text-primary">Sign<span class="text-dark">Ease</span></span>
+                    <a href="#/" class="brand-logo justify-content-center mb-3 fs-3">
+                        <div class="brand-icon"><i class="fa-solid fa-pen-nib"></i></div>
+                        <span>Sign<span class="text-primary">Ease</span></span>
                     </a>
-                    <h5 class="fw-bold mb-1">${t('loginTitle')}</h5>
+                    <h4 class="fw-bold mb-1">${t('loginTitle')}</h4>
                     <p class="text-muted small">${t('loginSub')}</p>
                 </div>
 
                 <form id="loginForm">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">${t('emailAddress')}</label>
+                        <label class="form-label small fw-semibold text-muted">${t('emailAddress')}</label>
                         <input type="email" id="loginEmail" class="form-control" placeholder="name@company.com" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">${t('password')}</label>
+                        <label class="form-label small fw-semibold text-muted">${t('password')}</label>
                         <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
                     </div>
-                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold mb-3">${t('signIn')}</button>
+                    <button type="submit" class="btn btn-pill btn-pill-primary w-100 py-2 fw-semibold mb-3 justify-content-center shadow-sm">
+                        <i class="fa-solid fa-right-to-bracket me-1"></i> ${t('signIn')}
+                    </button>
                 </form>
 
-                <div class="p-3 bg-light rounded-3 border mb-3">
+                <div class="auth-box-subtle mb-3">
                     <div class="small fw-bold text-muted mb-2 text-uppercase" style="font-size: 0.72rem;">Quick 1-Click Demo Logins</div>
                     <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-dark flex-fill" id="fillAdminBtn">
+                        <button type="button" class="btn btn-sm btn-pill-outline flex-fill" id="fillAdminBtn">
                             <i class="fa-solid fa-user-shield me-1"></i> Admin
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary flex-fill" id="fillSenderBtn">
-                            <i class="fa-solid fa-user-pen me-1"></i> Sender
+                        <button type="button" class="btn btn-sm btn-pill-outline flex-fill" id="fillSenderBtn">
+                            <i class="fa-solid fa-user-pen me-1"></i> Demo User
                         </button>
                     </div>
                 </div>
@@ -463,45 +536,45 @@ function renderLogin(container) {
     };
 }
 
-// 3. Simple, Ordinary Register Page with Email OTP Verification
+// 3. Simple, Clean, Ordinary Register Page with Email OTP (Full Dark & Light Mode Support)
 function renderRegister(container) {
     let otpDispatched = false;
     let isEmailVerified = false;
     api.clearToken();
 
     container.innerHTML = `
-        <div class="d-flex align-items-center justify-content-center py-5">
-            <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="max-width: 520px; width: 100%; border-radius: 12px;">
+        <div class="auth-wrapper">
+            <div class="auth-card" style="max-width: 520px;">
                 <div class="text-center mb-4">
-                    <a href="#/" class="text-decoration-none d-inline-flex align-items-center mb-2">
-                        <i class="fa-solid fa-file-signature text-primary fs-2 me-2"></i>
-                        <span class="fs-3 fw-bold text-primary">Sign<span class="text-dark">Ease</span></span>
+                    <a href="#/" class="brand-logo justify-content-center mb-3 fs-3">
+                        <div class="brand-icon"><i class="fa-solid fa-pen-nib"></i></div>
+                        <span>Sign<span class="text-primary">Ease</span></span>
                     </a>
-                    <h5 class="fw-bold mb-1">${t('regTitle')}</h5>
+                    <h4 class="fw-bold mb-1">${t('regTitle')}</h4>
                     <p class="text-muted small">${t('regSub')}</p>
                 </div>
 
                 <form id="regForm">
                     <div class="row g-2 mb-3">
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">${t('firstName')} *</label>
+                            <label class="form-label small fw-semibold text-muted">${t('firstName')} *</label>
                             <input type="text" id="regFirst" class="form-control" placeholder="Rajesh" required>
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label small fw-semibold">${t('lastName')} *</label>
+                            <label class="form-label small fw-semibold text-muted">${t('lastName')} *</label>
                             <input type="text" id="regLast" class="form-control" placeholder="Sharma" required>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">${t('orgName')} *</label>
+                        <label class="form-label small fw-semibold text-muted">${t('orgName')} *</label>
                         <input type="text" id="regOrg" class="form-control" placeholder="Acme Enterprises" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">${t('emailAddress')} *</label>
+                        <label class="form-label small fw-semibold text-muted">${t('emailAddress')} *</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light text-muted border-end-0"><i class="fa-regular fa-envelope"></i></span>
+                            <span class="input-group-text border-end-0"><i class="fa-regular fa-envelope"></i></span>
                             <input type="email" id="regEmail" class="form-control border-start-0" placeholder="name@domain.com" required>
-                            <button type="button" class="btn btn-primary fw-semibold px-3" id="sendEmailOtpBtn">
+                            <button type="button" class="btn btn-pill-primary fw-semibold px-3" id="sendEmailOtpBtn">
                                 <i class="fa-solid fa-paper-plane me-1"></i> ${t('btnGetOtp')}
                             </button>
                         </div>
@@ -510,8 +583,8 @@ function renderRegister(container) {
                     </div>
 
                     <!-- Email OTP Verification Box -->
-                    <div id="emailOtpSection" class="p-3 mb-3 bg-light rounded-3 border">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div id="emailOtpSection" class="auth-box-subtle mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label small fw-bold text-primary mb-0">
                                 <i class="fa-solid fa-shield-halved me-1"></i> ${t('otpLabel')} *
                             </label>
@@ -533,11 +606,11 @@ function renderRegister(container) {
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">${t('password')} *</label>
+                        <label class="form-label small fw-semibold text-muted">${t('password')} *</label>
                         <input type="password" id="regPass" class="form-control" placeholder="••••••••" minlength="6" required>
                     </div>
 
-                    <button type="submit" id="submitRegBtn" class="btn btn-primary w-100 py-2 fw-semibold mb-3">
+                    <button type="submit" id="submitRegBtn" class="btn btn-pill btn-pill-primary w-100 py-2 fw-semibold mb-3 justify-content-center shadow-sm">
                         <i class="fa-solid fa-user-plus me-1"></i> ${t('btnCreateAccount')}
                     </button>
                 </form>
@@ -603,7 +676,7 @@ function renderRegister(container) {
         try {
             await api.verifyRegistrationOtp(email, otpCode);
             isEmailVerified = true;
-            document.getElementById('emailOtpSection').className = 'p-3 mb-3 bg-success-subtle border border-success rounded-3';
+            document.getElementById('emailOtpSection').className = 'auth-box-subtle mb-3 border border-success rounded-3';
             document.getElementById('regEmailVerifiedBadge').classList.remove('d-none');
             document.getElementById('regOtpAlert').innerHTML = '<span class="text-success fw-bold"><i class="fa-solid fa-circle-check me-1"></i> Email Verified!</span>';
             document.getElementById('sendEmailOtpBtn').style.display = 'none';
