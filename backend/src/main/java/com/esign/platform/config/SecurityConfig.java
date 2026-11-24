@@ -109,17 +109,27 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/h2-console/**"
                         ).permitAll()
-                        // 3. Public static resources
+                        // 3. Public static resources & SPA bundles
                         .requestMatchers(
                                 "/",
-                                "/login",
-                                "/register",
-                                "/verify/**",
-                                "/sign/**",
+                                "/index.html",
+                                "/assets/**",
+                                "/static/**",
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
-                                "/favicon.ico"
+                                "/favicon.ico",
+                                "/*.js",
+                                "/*.css",
+                                "/*.html",
+                                "/login",
+                                "/register",
+                                "/dashboard",
+                                "/documents/**",
+                                "/profile",
+                                "/upload",
+                                "/verify/**",
+                                "/sign/**"
                         ).permitAll()
                         // 4. Admin endpoints
                         .requestMatchers("/admin/**", "/api/v1/admin/**").hasRole("ADMIN")
@@ -134,7 +144,7 @@ public class SecurityConfig {
                                 response.setContentType("application/json");
                                 response.getWriter().write("{\"error\": \"Unauthorized\", \"message\": \"" + authException.getMessage() + "\"}");
                             } else {
-                                response.sendRedirect("/login");
+                                response.sendRedirect("/#/login");
                             }
                         })
                         // For REST API endpoints, return 403 JSON when role is insufficient

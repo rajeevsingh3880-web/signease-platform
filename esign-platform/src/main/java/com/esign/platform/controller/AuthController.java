@@ -22,24 +22,13 @@ public class AuthController {
     private final AuthService authService;
 
     @GetMapping("/login")
-    public String loginPage(@RequestParam(value = "error", required = false) String error,
-                            @RequestParam(value = "logout", required = false) String logout,
-                            Model model) {
-        if (error != null) {
-            model.addAttribute("errorMessage", "Invalid email or password. Please try again.");
-        }
-        if (logout != null) {
-            model.addAttribute("successMessage", "You have been successfully signed out.");
-        }
-        return "login";
+    public String loginPage() {
+        return "redirect:/#/login";
     }
 
     @GetMapping("/register")
-    public String registerPage(Model model) {
-        if (!model.containsAttribute("registerRequest")) {
-            model.addAttribute("registerRequest", new RegisterRequest());
-        }
-        return "register";
+    public String registerPage() {
+        return "redirect:/#/register";
     }
 
     @PostMapping("/register")

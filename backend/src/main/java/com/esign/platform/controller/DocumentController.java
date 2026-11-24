@@ -45,94 +45,18 @@ public class DocumentController {
     private final AuditService auditService;
 
     @GetMapping
-    public String listDocuments(@RequestParam(value = "status", required = false) String statusStr,
-                                @RequestParam(value = "query", required = false) String query,
-                                @RequestParam(value = "page", defaultValue = "0") int page,
-                                @RequestParam(value = "size", defaultValue = "10") int size,
-                                Model model) {
-
-        User user = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("Not authenticated"));
-
-        PageRequest pageRequest = PageRequest.of(page, size);
-        Page<Document> documents;
-
-        if (statusStr != null && !statusStr.isBlank() && !"ALL".equalsIgnoreCase(statusStr)) {
-            try {
-                Document.Status status = Document.Status.valueOf(statusStr.toUpperCase());
-                documents = documentService.getUserDocumentsByStatus(user, status, pageRequest);
-            } catch (IllegalArgumentException e) {
-                documents = documentService.getUserDocuments(user, pageRequest);
-            }
-        } else {
-            documents = documentService.getUserDocuments(user, pageRequest);
-        }
-
-        model.addAttribute("user", user);
-        model.addAttribute("documents", documents);
-        model.addAttribute("currentStatus", statusStr != null ? statusStr : "ALL");
-        model.addAttribute("searchQuery", query);
-
-        return "documents/list";
+    public String listDocuments() {
+        return "redirect:/#/documents";
     }
 
     @GetMapping("/upload")
-    public String uploadPage(Model model) {
-        User user = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("Not authenticated"));
-        model.addAttribute("user", user);
-        model.addAttribute("uploadDto", new DocumentUploadDto());
-        return "documents/upload";
-    }
-
-    @PostMapping("/upload")
-    public String handleUpload(@ModelAttribute("uploadDto") DocumentUploadDto uploadDto,
-                               HttpServletRequest request,
-                               RedirectAttributes redirectAttributes) {
-
-        User user = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("Not authenticated"));
-
-        try {
-            String ip = request.getRemoteAddr();
-            String userAgent = request.getHeader("User-Agent");
-            Document doc = documentService.uploadDocument(uploadDto, user, ip, userAgent);
-
-            redirectAttributes.addFlashAttribute("successMessage",
-                    "Document \"" + doc.getTitle() + "\" uploaded successfully! You can now configure signers.");
-            return "redirect:/signing/request?documentId=" + doc.getId();
-        } catch (Exception e) {
-            log.error("Upload failed", e);
-            redirectAttributes.addFlashAttribute("errorMessage", "Upload failed: " + e.getMessage());
-            return "redirect:/documents/upload";
-        }
+    public String uploadPage() {
+        return "redirect:/#/upload";
     }
 
     @GetMapping("/{id}")
-    public String viewDocument(@PathVariable("id") UUID id, Model model) {
-        User user = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("Not authenticated"));
-
-        Document document = documentService.getDocumentById(id);
-        Optional<SigningRequest> signingRequest = requestRepository.findByDocument(document);
-
-        List<SignerInvite> signers = signingRequest.isPresent()
-                ? signerInviteRepository.findBySigningRequestOrderBySignOrderAsc(signingRequest.get())
-                : List.of();
-
-        List<Signature> signatures = signatureRepository.findByDocument(document);
-        List<DocumentField> fields = fieldRepository.findByDocumentOrderByPageNumberAsc(document);
-        List<AuditLog> auditLogs = auditService.getDocumentAuditLogs(document.getId());
-
-        model.addAttribute("user", user);
-        model.addAttribute("document", document);
-        model.addAttribute("signingRequest", signingRequest.orElse(null));
-        model.addAttribute("signers", signers);
-        model.addAttribute("signatures", signatures);
-        model.addAttribute("fields", fields);
-        model.addAttribute("auditLogs", auditLogs);
-
-        return "documents/view";
+    public String viewDocument(@PathVariable("id") UUID id) {
+        return "redirect:/#/documents/" + id;
     }
 
     @GetMapping("/{id}/download")

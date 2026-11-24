@@ -1,216 +1,34 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SignEase - Simple & Secure Digital Signatures</title>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>SignEase — Simple &amp; Secure Digital Signatures</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5.3 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome 6 -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
-    
 
-
-    <style>
-        :root {
-            --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-light: #f8fafc;
-        }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg-light); color: #1e293b; top: 0px !important; }
-        
-        .goog-te-banner-frame.skiptranslate,
-        .goog-te-banner-frame,
-        #goog-gt-tt,
-        .goog-te-balloon-frame {
-            display: none !important;
-        }
-        .goog-te-gadget-simple {
-            background-color: transparent !important;
-            border: none !important;
-            font-size: 0.85rem !important;
-            padding: 0 !important;
-        }
-        .goog-te-combo {
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
-            font-size: 0.85rem;
-            width: 100%;
-        }
-
-        .hero-section {
-            background-color: #f1f5f9;
-            padding: 70px 0 60px 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .step-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 24px;
-            height: 100%;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .step-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .step-number {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            background: #eff6ff;
-            color: #2563eb;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            margin-bottom: 1rem;
-        }
-    </style>
+    <!-- Pre-render Theme Initialization to prevent flash -->
+    <script>
+        (function() {
+            var theme = localStorage.getItem('signease_theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            var lang = localStorage.getItem('signease_lang') || 'en';
+            document.documentElement.setAttribute('lang', lang);
+        })();
+    </script>
+  <script type="module" crossorigin src="/assets/index-eWR8Pn20.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-Dns7dzKl.css">
 </head>
 <body>
+    <div id="app"></div>
 
-    <!-- Header / Navbar -->
-    <nav class="navbar navbar-expand-lg bg-white border-bottom sticky-top shadow-sm py-2">
-        <div class="container-fluid px-lg-4 d-flex align-items-center justify-content-between">
-            <a class="navbar-brand d-flex align-items-center" th:href="@{/}">
-                <i class="fa-solid fa-file-signature me-2 text-primary fs-3"></i>
-                <span class="fw-bold fs-4 text-primary">Sign<span class="text-dark">Ease</span></span>
-            </a>
-
-            <!-- ALWAYS VISIBLE: Language Selector + Actions -->
-            <div class="d-flex align-items-center gap-2 ms-auto">
-                <!-- Prominent Language Selector Dropdown -->
-                <div class="dropdown">
-                    <button class="btn btn-outline-primary btn-sm rounded-pill fw-bold px-3 py-1 d-flex align-items-center shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="langSelectBtn">
-                        <i class="fa-solid fa-language fs-5 me-1 text-primary"></i>
-                        <span>🌐 हिन्दी / Language</span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; min-width: 215px; z-index: 1050;">
-                        <li><h6 class="dropdown-header fw-bold text-uppercase text-primary small">Select Language / भाषा चुनें</h6></li>
-                        <li><a class="dropdown-item notranslate py-2 fw-semibold" href="javascript:void(0)" onclick="setGoogleLang('hi')">🇮🇳 हिन्दी (Hindi)</a></li>
-                        <li><a class="dropdown-item notranslate py-2" href="javascript:void(0)" onclick="setGoogleLang('en')">🇬🇧 English</a></li>
-                        <li><a class="dropdown-item notranslate py-2" href="javascript:void(0)" onclick="setGoogleLang('mr')">🇮🇳 मराठी (Marathi)</a></li>
-                        <li><a class="dropdown-item notranslate py-2" href="javascript:void(0)" onclick="setGoogleLang('gu')">🇮🇳 ગુજરાતી (Gujarati)</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li class="dropdown-header small text-muted">More Languages / अन्य 100+ भाषाएं:</li>
-                        <li class="px-3 py-1"><div id="google_translate_element"></div></li>
-                    </ul>
-                </div>
-
-                <a th:href="@{/verify}" class="btn btn-outline-success btn-sm px-3 d-none d-sm-inline-flex align-items-center"><i class="fa-solid fa-shield-halved me-1"></i> Verify</a>
-                <a th:href="@{/login}" class="btn btn-outline-secondary btn-sm px-3">Sign In</a>
-                <a th:href="@{/register}" class="btn btn-primary btn-sm px-3">Create Account</a>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <section class="hero-section text-center">
-        <div class="container px-4">
-            <div class="badge bg-primary-subtle text-primary fw-semibold px-3 py-2 rounded-pill mb-3">
-                ✨ Simple &amp; Secure Digital Signatures
-            </div>
-            <h1 class="display-5 fw-bold mb-3" style="letter-spacing: -0.5px;">
-                Sign &amp; Send Documents in Minutes
-            </h1>
-            <p class="lead mb-4 mx-auto text-muted" style="max-width: 680px; font-size: 1.15rem;">
-                The easiest, fastest way to sign contracts and agreements online. Safe, legally valid, and works directly on your phone or computer.
-            </p>
-            <div class="d-flex flex-wrap justify-content-center gap-3 mb-4">
-                <a th:href="@{/register}" class="btn btn-primary btn-lg px-4 shadow-sm">
-                    <i class="fa-solid fa-pen-nib me-2"></i> Start Free Trial
-                </a>
-                <a th:href="@{/login}" class="btn btn-outline-secondary btn-lg px-4 bg-white">
-                    <i class="fa-solid fa-right-to-bracket me-2"></i> My Dashboard
-                </a>
-                <a th:href="@{/verify}" class="btn btn-outline-success btn-lg px-4 bg-white">
-                    <i class="fa-solid fa-shield-halved me-2"></i> Verify a Document
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- 3 Simple Steps -->
-    <section class="py-5">
-        <div class="container px-4">
-            <div class="text-center mb-5">
-                <h3 class="fw-bold">3 Simple Steps to Sign Any Document</h3>
-                <p class="text-muted small">Anyone can use SignEase without training or complex software.</p>
-            </div>
-
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="step-card">
-                        <div class="step-number"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-                        <h5 class="fw-bold">1. Upload PDF</h5>
-                        <p class="text-muted small mb-0">Choose any contract, agreement, or form from your phone or computer.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="step-card">
-                        <div class="step-number"><i class="fa-solid fa-users"></i></div>
-                        <h5 class="fw-bold">2. Add Signers</h5>
-                        <p class="text-muted small mb-0">Enter the email address of people who need to sign. They receive an email invite instantly.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="step-card">
-                        <div class="step-number"><i class="fa-solid fa-file-circle-check"></i></div>
-                        <h5 class="fw-bold">3. Sign &amp; Download</h5>
-                        <p class="text-muted small mb-0">Sign with your finger or type your name, and download the finished, legally valid PDF.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Why People Love SignEase -->
-    <section class="py-5 bg-white border-top border-bottom">
-        <div class="container px-4">
-            <div class="text-center mb-5">
-                <h3 class="fw-bold">Why People Love SignEase</h3>
-                <p class="text-muted small">Designed for individuals, businesses, and everyday agreements.</p>
-            </div>
-
-            <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="p-4 rounded-3 border bg-light h-100">
-                        <div class="text-primary fs-3 mb-2"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
-                        <h6 class="fw-bold">Zero Complicated Setup</h6>
-                        <p class="text-muted small mb-0">No software installation needed. Signers open the link on mobile or PC and sign in seconds.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-4 rounded-3 border bg-light h-100">
-                        <div class="text-success fs-3 mb-2"><i class="fa-solid fa-certificate"></i></div>
-                        <h6 class="fw-bold">100% Legally Valid</h6>
-                        <p class="text-muted small mb-0">Full completion certificates with tamper-evident audit logs recognized under the IT Act.</p>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="p-4 rounded-3 border bg-light h-100">
-                        <div class="text-info fs-3 mb-2"><i class="fa-solid fa-paper-plane"></i></div>
-                        <h6 class="fw-bold">Instant Email Delivery</h6>
-                        <p class="text-muted small mb-0">Verification OTPs and invitation links arrive instantly in your recipient's inbox.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="py-4 bg-white">
-        <div class="container px-4 d-flex flex-wrap justify-content-between align-items-center text-muted small">
-            <div><strong>SignEase</strong> &copy; 2026. Simple, fast and legally valid electronic document signing.</div>
-            <div class="d-flex align-items-center gap-3">
-                <a th:href="@{/verify}" class="text-decoration-none text-primary"><i class="fa-solid fa-shield-halved me-1"></i> Verify Document</a>
-                <a th:href="@{/login}" class="text-decoration-none text-muted">Sign In</a>
-            </div>
-        </div>
-    </footer>
-
+    <!-- Bootstrap 5.3 Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

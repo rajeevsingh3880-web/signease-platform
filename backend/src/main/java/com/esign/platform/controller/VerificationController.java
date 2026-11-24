@@ -18,14 +18,11 @@ public class VerificationController {
     private final VerificationService verificationService;
 
     @GetMapping("/verify")
-    public String verifyPage(@RequestParam(value = "hash", required = false) String hash,
-                             Model model) {
+    public String verifyPage(@RequestParam(value = "hash", required = false) String hash) {
         if (hash != null && !hash.isBlank()) {
-            DocumentVerificationResultDto result = verificationService.verifyByHash(hash);
-            model.addAttribute("result", result);
-            model.addAttribute("searchedHash", hash);
+            return "redirect:/#/verify?hash=" + hash;
         }
-        return "verify";
+        return "redirect:/#/verify";
     }
 
     @PostMapping("/verify")

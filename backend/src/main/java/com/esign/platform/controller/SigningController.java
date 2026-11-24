@@ -50,28 +50,8 @@ public class SigningController {
     private boolean exposeTestOtp;
 
     @GetMapping("/signing/request")
-    public String signingRequestPage(@RequestParam(value = "documentId", required = false) UUID documentId,
-                                     Model model) {
-        User user = authService.getCurrentUser()
-                .orElseThrow(() -> new IllegalStateException("Not authenticated"));
-
-        List<Document> userDrafts = documentRepository.findByUploadedByOrderByCreatedAtDesc(user).stream()
-                .filter(Document::isEditable)
-                .toList();
-
-        Document selectedDoc = null;
-        if (documentId != null) {
-            selectedDoc = documentService.getDocumentById(documentId);
-        } else if (!userDrafts.isEmpty()) {
-            selectedDoc = userDrafts.get(0);
-        }
-
-        model.addAttribute("user", user);
-        model.addAttribute("draftDocuments", userDrafts);
-        model.addAttribute("selectedDocument", selectedDoc);
-        model.addAttribute("requestDto", new CreateSigningRequestDto());
-
-        return "signing/request";
+    public String signingRequestPage() {
+        return "redirect:/#/upload";
     }
 
     @PostMapping("/signing/request")
@@ -98,35 +78,8 @@ public class SigningController {
     }
 
     @GetMapping("/sign/{token}")
-    public String signerPage(@PathVariable("token") UUID token,
-                             HttpServletRequest request,
-                             Model model) {
-        try {
-            String ip = request.getRemoteAddr();
-            String userAgent = request.getHeader("User-Agent");
-            SignerInvite invite = signingService.accessSigningPage(token, ip, userAgent);
-            Document document = invite.getSigningRequest().getDocument();
-
-            List<DocumentField> fields = fieldRepository.findBySignerInvite(invite);
-
-            model.addAttribute("invite", invite);
-            model.addAttribute("document", document);
-            model.addAttribute("fields", fields);
-            model.addAttribute("submitDto", new SubmitSignatureDto());
-
-            if (invite.getStatus() == SignerInvite.Status.SIGNED) {
-                return "signing/completed";
-            }
-            if (invite.getStatus() == SignerInvite.Status.DECLINED) {
-                model.addAttribute("reason", invite.getDeclineReason());
-                return "signing/declined";
-            }
-
-            return "signing/sign";
-        } catch (Exception e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            return "signing/invalid-token";
-        }
+    public String signerPage(@PathVariable("token") UUID token) {
+        return "redirect:/#/sign/" + token;
     }
 
     @PostMapping("/sign/{token}/otp")
