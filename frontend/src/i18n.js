@@ -14,6 +14,12 @@ export const translations = {
         signOut: 'Sign Out',
         language: 'Language / भाषा',
 
+        // Header CTAs
+        newEnvelope: '+ New Envelope',
+        newAgreement: '+ New Agreement',
+        exportCsv: 'Export CSV',
+        darkModeToggle: 'Toggle Theme',
+
         // Landing
         heroBadge: '✨ Simple & Secure Digital Signatures',
         heroTitle: 'Sign & Send Documents in Minutes',
@@ -36,44 +42,105 @@ export const translations = {
         feature3Title: 'Instant Email Delivery',
         feature3Desc: 'Verification OTPs and invitation links arrive instantly in your inbox.',
 
-        // Dashboard
-        welcomeBack: 'Welcome back,',
-        dashboardSub: 'Here is what is happening with your documents today.',
-        totalDocs: 'Total Documents',
-        pendingDocs: 'Waiting for Signatures',
-        completedDocs: 'Completed Documents',
-        draftDocs: 'Draft Documents',
-        btnNewDoc: '➕ Upload & Send Document',
-        recentDocsTitle: 'Recent Documents',
-        viewAll: 'View All',
-        colDoc: 'Document',
-        colStatus: 'Status',
-        colDate: 'Date',
-        colActions: 'Actions',
-        noDocsFound: 'No documents yet. Click "Upload & Send Document" to get started.',
+        // Dashboard (Matches Screenshot 4)
+        greeting: 'Good morning,',
+        compliancetag: 'AADHAAR ESIGN & IT ACT COMPLIANT',
+        attentionSub: 'documents require your immediate attention',
+        vaultSynced: 'Vault Synced',
+        totalDocs: 'TOTAL DOCUMENTS',
+        pendingDocs: 'PENDING YOUR SIGNATURE',
+        completedDocs: 'COMPLETED & ARCHIVED',
+        actionNeeded: 'Action needed',
+        thisWeekGrowth: '+2 this week',
+        rateDone: '64% rate',
+        searchPlaceholder: 'Search by title, party name, or ID...',
+        filterAll: 'All',
+        filterRequiresMe: 'Requires Me',
+        filterCompleted: 'Completed',
+        uploadAndSign: '➕ Upload & Sign',
+        colDocName: 'DOCUMENT NAME',
+        colSignersStatus: 'SIGNERS & STATUS',
+        colLastUpdated: 'LAST UPDATED',
+        colAction: 'ACTION',
+        signNow: 'Sign Now',
+        remind: 'Remind',
+        download: 'Download',
+        showingAgreements: 'Showing agreements',
+        viewVaultLink: 'View all documents in Vault →',
+        legalValidityGuaranteed: 'Legal Validity Guaranteed',
+        legalValidityDesc: 'Signatures made on SignEase comply with Section 5 of the Information Technology Act (2000).',
+        auditTrailGuide: 'Audit Trail Guide ↗',
 
-        // Upload Page
-        uploadTitle: 'Upload New Document',
-        uploadSub: 'Choose a PDF file to sign or send to others.',
-        clickToUpload: 'Click to choose a PDF or drag & drop here',
-        docTitleLabel: 'Document Title',
-        docTitlePlaceholder: 'e.g. Rent Agreement, Job Offer Letter',
-        docDescLabel: 'Notes or Message (Optional)',
-        btnUploadNext: 'Upload & Next',
+        // Documents Registry (Matches Screenshot 2)
+        docRegistryTitle: 'Documents',
+        docRegistrySub: 'Manage and track your signed agreements.',
+        activeEnvelopes: 'ACTIVE ENVELOPES',
+        needsAction: 'NEEDS YOUR ACTION',
+        awaitingSigners: 'AWAITING SIGNERS',
+        verificationAudit: 'VERIFICATION AUDIT',
+        urgentReview: 'Urgent review',
+        externalParties: 'External parties',
+        itActCompliant: 'eIDAS / IT Act Compliant',
+        filterWaitingOthers: 'Waiting on Others',
+        reviewAndSign: 'Review & Sign',
+        downloadPdf: 'Download PDF',
+        continueEdit: 'Continue Edit',
+        hsmActive: '256-Bit HSM Hardware Vault Encryption Active',
+        hsmDesc: 'Each executed document generates a tamper-evident SHA-256 cryptographic audit trail with court-admissible certificate of completion.',
+        viewCryptoCert: 'View Cryptographic Certificate →',
+
+        // Workflow / Send (Matches Screenshot 3)
+        workflowDispatch: 'WORKFLOW DISPATCH',
+        sendDocForSignature: 'Send Document for Signature',
+        sendDocDesc: 'Upload cryptographic contracts, bind parties, and dispatch legal audit-ready envelopes.',
+        step1Upload: '1 Upload File',
+        pdfFormatUpTo: 'PDF FORMAT UP TO 25 MB',
+        dropPdfHere: 'Drop your PDF here, or',
+        browseFiles: 'Browse files',
+        encryptedTransit: 'Encrypted in-transit via TLS 1.3 • Max size 25MB',
+        readyToTag: 'Ready to tag',
+        step2Signers: '2 Add Signers',
+        orderType: 'SEQUENTIAL OR PARALLEL ORDER',
+        signersNotice: 'Recipients will receive a cryptographically sealed invite link. No account creation required for signers.',
+        signerName: 'SIGNER NAME',
+        emailAddress: 'EMAIL ADDRESS',
+        role: 'ROLE',
+        needsToSign: 'Needs to sign',
+        receivesCopy: 'Receives a copy',
+        addAnotherRecipient: '➕ Add another recipient',
+        tamperProofAudit: 'Tamper-Proof Audit Trail Active',
+        tamperProofDesc: 'Includes IP capture, hash verification & timestamp log upon final execution.',
+        sendReminder48h: 'Send email reminder after 48h',
         cancel: 'Cancel',
+        saveAsDraft: 'Save as Draft',
+        sendForSignature: 'Send for Signature ▶',
 
-        // Send & Invite Page
-        sendTitle: 'Configure & Send Invites',
-        sendSub: 'Enter the signers who need to execute this document.',
-        signerNumber: 'Signer',
-        fullName: 'Full Name',
-        emailAddress: 'Email Address',
-        phoneOptional: 'Mobile (+91)',
-        btnAddSigner: '➕ Add Another Signer',
-        btnSendInvites: '🚀 Dispatch Signing Invites',
-        dispatchedSuccess: 'Agreement Dispatched Successfully! Email invites sent.',
+        // Verify Page (Matches Screenshot 1)
+        trustLedger: 'DECENTRALIZED TRUST LEDGER',
+        verifyAuthenticity: 'Verify Document Authenticity',
+        verifyDocSubtitle: 'Check if a signed document is genuine, legally binding, and completely untampered.',
+        auditorNodeOnline: 'Auditor Node 04: Online',
+        tabEnterHash: 'Enter Document Hash / ID',
+        tabUploadFile: 'Upload Signed File',
+        checksumLabel: 'Cryptographic Checksum or Envelope Token',
+        pasteBtn: 'Paste',
+        verifyDocumentBtn: 'Verify Document',
+        verifyHelperNotice: 'The signature ledger verifies cryptographic hashes client-side without storing confidential document contents.',
+        verifiedAuthenticTitle: 'Verified Authentic & Tamper-Free',
+        legallyBinding: 'Legally Binding',
+        verifiedSub: 'Cryptographic signature and audit hash match the immutably registered vault record.',
+        downloadAuditCertificate: 'Download Audit Certificate (PDF)',
+        metaDocTitle: 'DOCUMENT TITLE',
+        metaSignaturesVerified: 'SIGNATURES VERIFIED',
+        metaTimestampAuth: 'TIMESTAMP & TIME STAMPING AUTHORITY',
+        originalMatch: 'Original Match',
+        sealedEndToEnd: 'End-to-End Cryptographically Sealed',
+        itActTitle: 'Information Technology Act, 2000',
+        itActDesc: 'Signatures on this platform meet Section 10A and Section 3A provisions for legal validity and electronic contract enforceability.',
+        zkpTitle: 'Zero Knowledge Proofs',
+        zkpDesc: 'Verification proves original authenticity without exposing privileged contents to unauthorized parties or public ledgers.',
 
-        // Register Page
+        // Register / Login
         regTitle: 'Create Your Account',
         regSub: 'Verify your email with a 6-digit OTP to get started',
         firstName: 'First Name',
@@ -88,14 +155,12 @@ export const translations = {
         btnCreateAccount: 'Create Free Account',
         alreadyRegistered: 'Already have an account?',
         signInHere: 'Sign in here',
-
-        // Login Page
         loginTitle: 'Welcome Back',
         loginSub: 'Sign in to access your documents and signed contracts',
         dontHaveAccount: "Don't have an account?",
         signUpHere: 'Create free account',
 
-        // Signer Page
+        // Public Signer Page
         signerWelcome: 'Review & Sign Document',
         requestedBy: 'Requested by',
         tabDraw: '✍️ Draw Signature',
@@ -103,14 +168,6 @@ export const translations = {
         btnClear: 'Clear',
         btnCompleteSigning: '✅ Complete & Sign Document',
         otpNotice: 'A 6-digit OTP passcode will be sent to your email to verify your identity.',
-
-        // Verify Page
-        verifyTitle: 'Verify Any Signed Document',
-        verifySub: 'Check if a document is authentic and has not been altered after signing.',
-        pasteHashLabel: 'Paste SHA-256 Hash or Document ID',
-        btnVerifyNow: 'Verify Authenticity',
-
-        // Footer
         footerNote: 'SignEase — Simple, fast and legally valid electronic document signing.'
     },
 
@@ -127,6 +184,12 @@ export const translations = {
         createAccount: 'खाता बनाएं',
         signOut: 'लॉग आउट',
         language: 'भाषा / Language',
+
+        // Header CTAs
+        newEnvelope: '+ नया अनुबंध',
+        newAgreement: '+ नया समझौता',
+        exportCsv: 'CSV निर्यात करें',
+        darkModeToggle: 'डार्क/लाइट मोड',
 
         // Landing
         heroBadge: '✨ सरल और सुरक्षित डिजिटल हस्ताक्षर',
@@ -150,44 +213,105 @@ export const translations = {
         feature3Title: 'तुरंत ईमेल डिलीवरी',
         feature3Desc: 'सत्यापन ओटीपी और हस्ताक्षर आमंत्रण लिंक तुरंत ईमेल इनबॉक्स में पहुंचते हैं।',
 
-        // Dashboard
-        welcomeBack: 'नमस्ते,',
-        dashboardSub: 'आज आपके दस्तावेज़ों की वर्तमान स्थिति:',
+        // Dashboard (Matches Screenshot 4)
+        greeting: 'शुभ प्रभात,',
+        compliancetag: 'आधार ई-साइन और आईटी अधिनियम 2000 अनुपालित',
+        attentionSub: 'दस्तावेज़ों पर आपके तत्काल ध्यान की आवश्यकता है',
+        vaultSynced: 'वॉल्ट सिंक हुआ',
         totalDocs: 'कुल दस्तावेज़',
-        pendingDocs: 'हस्ताक्षर की प्रतीक्षा',
-        completedDocs: 'पूरे हो चुके दस्तावेज़',
-        draftDocs: 'ड्राफ्ट दस्तावेज़',
-        btnNewDoc: '➕ नया दस्तावेज़ भेजें',
-        recentDocsTitle: 'हाल के दस्तावेज़',
-        viewAll: 'सभी देखें',
-        colDoc: 'दस्तावेज़',
-        colStatus: 'स्थिति',
-        colDate: 'तारीख',
-        colActions: 'कार्रवाई',
-        noDocsFound: 'अभी तक कोई दस्तावेज़ नहीं है। शुरू करने के लिए "नया दस्तावेज़ भेजें" पर क्लिक करें।',
+        pendingDocs: 'आपके हस्ताक्षर लंबित हैं',
+        completedDocs: 'पूर्ण एवं संग्रहीत',
+        actionNeeded: 'कार्रवाई आवश्यक',
+        thisWeekGrowth: '+2 इस सप्ताह',
+        rateDone: '64% पूर्णता दर',
+        searchPlaceholder: 'शीर्षक, हस्ताक्षरकर्ता या आईडी खोजें...',
+        filterAll: 'सभी',
+        filterRequiresMe: 'मेरे हस्ताक्षर चाहिए',
+        filterCompleted: 'पूर्ण',
+        uploadAndSign: '➕ अपलोड और साइन',
+        colDocName: 'दस्तावेज़ का नाम',
+        colSignersStatus: 'हस्ताक्षरकर्ता एवं स्थिति',
+        colLastUpdated: 'अंतिम अपडेट',
+        colAction: 'कार्रवाई',
+        signNow: 'साइन करें',
+        remind: 'याद दिलाएं',
+        download: 'डाउनलोड',
+        showingAgreements: 'दिखाए जा रहे समझौते',
+        viewVaultLink: 'वॉल्ट में सभी दस्तावेज़ देखें →',
+        legalValidityGuaranteed: 'कानूनी वैधता की गारंटी',
+        legalValidityDesc: 'SignEase पर किए गए हस्ताक्षर सूचना प्रौद्योगिकी अधिनियम (2000) की धारा 5 का अनुपालन करते हैं।',
+        auditTrailGuide: 'ऑडिट ट्रेल गाइड ↗',
 
-        // Upload Page
-        uploadTitle: 'नया दस्तावेज़ अपलोड करें',
-        uploadSub: 'साइन करने या दूसरों को भेजने के लिए पीडीएफ फाइल चुनें।',
-        clickToUpload: 'पीडीएफ चुनने के लिए क्लिक करें या यहाँ खींचकर लाएं',
-        docTitleLabel: 'दस्तावेज़ का नाम',
-        docTitlePlaceholder: 'उदा. किराया समझौता, नियुक्ति पत्र, अनुबंध',
-        docDescLabel: 'विवरण या संदेश (वैकल्पिक)',
-        btnUploadNext: 'अपलोड करें और आगे बढ़ें',
-        cancel: 'रद्द करें',
+        // Documents Registry (Matches Screenshot 2)
+        docRegistryTitle: 'दस्तावेज़',
+        docRegistrySub: 'अपने हस्ताक्षरित अनुबंधों का प्रबंधन और ट्रैक करें।',
+        activeEnvelopes: 'सक्रिय अनुबंध',
+        needsAction: 'कार्रवाई की आवश्यकता',
+        awaitingSigners: 'हस्ताक्षरकर्ताओं की प्रतीक्षा',
+        verificationAudit: 'सत्यापन ऑडिट',
+        urgentReview: 'तत्काल समीक्षा',
+        externalParties: 'बाहरी पक्षकार',
+        itActCompliant: 'आईटी अधिनियम अनुपालित',
+        filterWaitingOthers: 'दूसरों की प्रतीक्षा',
+        reviewAndSign: 'समीक्षा एवं साइन',
+        downloadPdf: 'पीडीएफ डाउनलोड',
+        continueEdit: 'संपादन जारी रखें',
+        hsmActive: '256-बिट HSM हार्डवेयर वॉल्ट एन्क्रिप्शन सक्रिय',
+        hsmDesc: 'प्रत्येक निष्पादित दस्तावेज़ अदालत में मान्य प्रमाणपत्र के साथ छेड़छाड़-रहित SHA-256 ऑडिट ट्रेल बनाता है।',
+        viewCryptoCert: 'क्रिप्टोग्राफ़िक प्रमाणपत्र देखें →',
 
-        // Send & Invite Page
-        sendTitle: 'हस्ताक्षरकर्ताओं को आमंत्रण भेजें',
-        sendSub: 'उन लोगों का नाम और ईमेल दर्ज करें जिन्हें साइन करना है।',
-        signerNumber: 'हस्ताक्षरकर्ता',
-        fullName: 'पूरा नाम',
+        // Workflow / Send (Matches Screenshot 3)
+        workflowDispatch: 'कार्यप्रवाह प्रेषण',
+        sendDocForSignature: 'हस्ताक्षर के लिए दस्तावेज़ भेजें',
+        sendDocDesc: 'क्रिप्टोग्राफिक अनुबंध अपलोड करें, पक्षों को जोड़ें और कानूनी ऑडिट-तैयार लिफाफे भेजें।',
+        step1Upload: '1 फ़ाइल अपलोड करें',
+        pdfFormatUpTo: '25 एमबी तक की पीडीएफ प्रारूप',
+        dropPdfHere: 'अपनी पीडीएफ यहाँ छोड़ें, या',
+        browseFiles: 'फ़ाइलें ब्राउज़ करें',
+        encryptedTransit: 'TLS 1.3 द्वारा एन्क्रिप्टेड • अधिकतम 25 एमबी',
+        readyToTag: 'टैग करने के लिए तैयार',
+        step2Signers: '2 हस्ताक्षरकर्ता जोड़ें',
+        orderType: 'क्रमिक या समानांतर क्रम',
+        signersNotice: 'प्राप्तकर्ताओं को एक सुरक्षित हस्ताक्षर लिंक मिलेगा। किसी खाते की आवश्यकता नहीं है।',
+        signerName: 'हस्ताक्षरकर्ता का नाम',
         emailAddress: 'ईमेल पता',
-        phoneOptional: 'मोबाइल (+91)',
-        btnAddSigner: '➕ एक और हस्ताक्षरकर्ता जोड़ें',
-        btnSendInvites: '🚀 ईमेल आमंत्रण भेजें',
-        dispatchedSuccess: 'दस्तावेज़ सफलतापूर्वक भेज दिया गया! ईमेल पर आमंत्रण पहुंच गया है।',
+        role: 'भूमिका',
+        needsToSign: 'साइन करना है',
+        receivesCopy: 'प्रतिलिपि प्राप्त होगी',
+        addAnotherRecipient: '➕ एक और प्राप्तकर्ता जोड़ें',
+        tamperProofAudit: 'छेड़छाड़-रोधी ऑडिट ट्रेल सक्रिय',
+        tamperProofDesc: 'अंतिम हस्ताक्षर पर आईपी कैप्चर, हैश सत्यापन और टाइमस्टैम्प शामिल है।',
+        sendReminder48h: '48 घंटे बाद ईमेल अनुस्मारक भेजें',
+        cancel: 'रद्द करें',
+        saveAsDraft: 'ड्राफ्ट सहेजें',
+        sendForSignature: 'हस्ताक्षर के लिए भेजें ▶',
 
-        // Register Page
+        // Verify Page (Matches Screenshot 1)
+        trustLedger: 'विकेंद्रीकृत विश्वास लेज़र',
+        verifyAuthenticity: 'दस्तावेज़ की प्रामाणिकता सत्यापित करें',
+        verifyDocSubtitle: 'जांचें कि क्या हस्ताक्षरित दस्तावेज़ प्रामाणिक, कानूनी रूप से बाध्यकारी और पूरी तरह से सुरक्षित है।',
+        auditorNodeOnline: 'ऑडिटर नोड 04: ऑनलाइन',
+        tabEnterHash: 'दस्तावेज़ हैश / आईडी दर्ज करें',
+        tabUploadFile: 'हस्ताक्षरित फ़ाइल अपलोड करें',
+        checksumLabel: 'क्रिप्टोग्राफिक चेकसम या टोकन',
+        pasteBtn: 'पेस्ट करें',
+        verifyDocumentBtn: 'दस्तावेज़ सत्यापित करें',
+        verifyHelperNotice: 'हस्ताक्षर लेज़र गोपनीय सामग्री को संग्रहीत किए बिना सीधे क्लाइंट-साइड हैश सत्यापित करता है।',
+        verifiedAuthenticTitle: 'सत्यापित प्रामाणिक और छेड़छाड़-मुक्त',
+        legallyBinding: 'कानूनी रूप से मान्य',
+        verifiedSub: 'क्रिप्टोग्राफिक हस्ताक्षर और ऑडिट हैश सुरक्षित वॉल्ट रिकॉर्ड से पूरी तरह मेल खाते हैं।',
+        downloadAuditCertificate: 'ऑडिट प्रमाणपत्र डाउनलोड करें (PDF)',
+        metaDocTitle: 'दस्तावेज़ का नाम',
+        metaSignaturesVerified: 'सत्यापित हस्ताक्षर',
+        metaTimestampAuth: 'टाइमस्टैम्प एवं प्राधिकारी',
+        originalMatch: 'मूल प्रति से मिलान',
+        sealedEndToEnd: 'पूर्ण रूप से सुरक्षित क्रिप्टोग्राफ़िक सील',
+        itActTitle: 'सूचना प्रौद्योगिकी अधिनियम, 2000',
+        itActDesc: 'इस प्लेटफ़ॉर्म पर हस्ताक्षर धारा 10A और 3A के तहत कानूनी वैधता और प्रवर्तनीयता को पूरा करते हैं।',
+        zkpTitle: 'शून्य-ज्ञान प्रमाण (Zero Knowledge Proofs)',
+        zkpDesc: 'सत्यापन अनधिकृत पक्षों को सामग्री दिखाए बिना मूल प्रामाणिकता सिद्ध करता है।',
+
+        // Register / Login
         regTitle: 'नया खाता बनाएं',
         regSub: 'शुरू करने के लिए अपना विवरण भरें और 6-अंकों का ओटीपी सत्यापित करें',
         firstName: 'पहला नाम',
@@ -200,95 +324,40 @@ export const translations = {
         otpDispatchedMsg: '6-अंकों का सत्यापन कोड आपके ईमेल इनबॉक्स में भेज दिया गया है।',
         password: 'पासवर्ड',
         btnCreateAccount: 'खाता बनाएं',
-        alreadyRegistered: 'पहले से पंजीकृत हैं?',
+        alreadyRegistered: 'पहले से खाता है?',
         signInHere: 'यहाँ साइन इन करें',
-
-        // Login Page
-        loginTitle: 'वापसी पर स्वागत है',
+        loginTitle: 'स्वागत है',
         loginSub: 'अपने दस्तावेज़ों और अनुबंधों तक पहुँचने के लिए साइन इन करें',
         dontHaveAccount: 'खाता नहीं है?',
         signUpHere: 'निःशुल्क खाता बनाएं',
 
-        // Signer Page
-        signerWelcome: 'दस्तावेज़ देखें और हस्ताक्षर करें',
-        requestedBy: 'अनुरोधकर्ता',
-        tabDraw: '✍️ उंगली से साइन बनाएं',
-        tabType: '⌨️ नाम लिखकर साइन करें',
-        btnClear: 'मिटाएं',
-        btnCompleteSigning: '✅ हस्ताक्षर पूरा करें',
+        // Public Signer Page
+        signerWelcome: 'दस्तावेज़ की समीक्षा और हस्ताक्षर',
+        requestedBy: 'द्वारा अनुरोधित',
+        tabDraw: '✍️ हस्ताक्षर बनाएं',
+        tabType: '⌨️ नाम टाइप करें',
+        btnClear: 'साफ़ करें',
+        btnCompleteSigning: '✅ दस्तावेज़ निष्पादित और सील करें',
         otpNotice: 'आपकी पहचान सत्यापित करने के लिए आपके ईमेल पर 6-अंकों का ओटीपी भेजा जाएगा।',
-
-        // Verify Page
-        verifyTitle: 'हस्ताक्षरित दस्तावेज़ की जांच करें',
-        verifySub: 'जांचें कि हस्ताक्षरित दस्तावेज़ असली है और इसमें कोई छेड़छाड़ नहीं की गई है।',
-        pasteHashLabel: 'SHA-256 हैश कोड या दस्तावेज़ आईडी दर्ज करें',
-        btnVerifyNow: 'सत्यापित करें',
-
-        // Footer
         footerNote: 'SignEase — सरल, तेज़ और कानूनी रूप से मान्य इलेक्ट्रॉनिक हस्ताक्षर।'
-    },
-
-    mr: {
-        brand: 'SignEase',
-        home: 'मुख्यपृष्ठ',
-        dashboard: 'डॅशबोर्ड',
-        documents: 'कागदपत्रे',
-        upload: 'अपलोड आणि स्वाक्षरी',
-        send: 'स्वाक्षरीसाठी पाठवा',
-        verify: 'पडताळणी करा',
-        admin: 'प्रशासक',
-        signIn: 'साइन इन',
-        createAccount: 'खाते तयार करा',
-        signOut: 'बाहेर पडा',
-        language: 'भाषा',
-        heroTitle: 'कागदपत्रे मिनिटांत स्वाक्षरी करा आणि पाठवा',
-        heroSubtitle: 'ऑनलाइन कागदपत्रांवर स्वाक्षरी करण्याचा सर्वात सोपा आणि सुरक्षित मार्ग.',
-        btnStartFree: 'विनामूल्य सुरू करा',
-        btnSenderDashboard: 'डॅशबोर्ड उघडा',
-        btnVerifyDoc: 'कागदपत्र पडताळा',
-        welcomeBack: 'स्वागत आहे,',
-        totalDocs: 'एकूण कागदपत्रे',
-        pendingDocs: 'प्रलंबित स्वाक्षऱ्या',
-        completedDocs: 'पूर्ण झालेली कागदपत्रे'
-    },
-
-    gu: {
-        brand: 'SignEase',
-        home: 'હોમ',
-        dashboard: 'ડેશબોર્ડ',
-        documents: 'દસ્તાવેજો',
-        upload: 'અપલોડ અને સહી',
-        send: 'સહી માટે મોકલો',
-        verify: 'ચકાસો',
-        admin: 'એડમિન',
-        signIn: 'સાઇન ઇન',
-        createAccount: 'ખાતું બનાવો',
-        signOut: 'બહાર નીકળો',
-        language: 'ભાષા',
-        heroTitle: 'દસ્તાવેજો મિનિટોમાં સહી કરો અને મોકલો',
-        heroSubtitle: 'ઓનલાઇન દસ્તાવેજો પર સહી કરવાનો સૌથી સરળ અને સુરક્ષિત રસ્તો.',
-        btnStartFree: 'મફત શરૂ કરો',
-        btnSenderDashboard: 'ડેશબોર્ડ ખોલો',
-        btnVerifyDoc: 'દસ્તાવેજ ચકાસો',
-        welcomeBack: 'સ્વાગત છે,',
-        totalDocs: 'કુલ દસ્તાવેજો',
-        pendingDocs: 'બાકી સહીઓ',
-        completedDocs: 'પૂર્ણ થયેલા દસ્તાવેજો'
     }
 };
 
-let currentLang = localStorage.getItem('signease_lang') || 'en';
-
 export function getLang() {
-    return currentLang;
+    return localStorage.getItem('signease_lang') || 'en';
 }
 
 export function setLang(lang) {
-    currentLang = lang;
     localStorage.setItem('signease_lang', lang);
 }
 
 export function t(key) {
-    const langObj = translations[currentLang] || translations.en;
-    return langObj[key] || translations.en[key] || key;
+    const lang = getLang();
+    if (translations[lang] && translations[lang][key]) {
+        return translations[lang][key];
+    }
+    if (translations['en'] && translations['en'][key]) {
+        return translations['en'][key];
+    }
+    return key;
 }
