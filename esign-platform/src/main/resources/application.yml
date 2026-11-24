@@ -10,7 +10,7 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: false
-    open-in-view: false
+    open-in-view: true
     properties:
       hibernate:
         format_sql: false
@@ -44,9 +44,14 @@ spring:
     mode: HTML
 
 server:
-  port: 8080
+  port: ${PORT:8080}
   error:
     include-message: always
+
+management:
+  health:
+    mail:
+      enabled: false
 
 app:
   jwt:
@@ -56,7 +61,7 @@ app:
     dir: ./uploads
   base-url: ${APP_BASE_URL:http://localhost:8080}
   security:
-    expose-test-otp: false
+    expose-test-otp: ${EXPOSE_TEST_OTP:true}
   email:
     resend-api-key: ${RESEND_API_KEY:}
     resend-from: ${RESEND_FROM:SignEase <onboarding@resend.dev>}
