@@ -183,7 +183,7 @@ async function render() {
                     </a>
                 </div>
 
-                <!-- Right Actions: Language + Dark Mode + + New Envelope + Profile -->
+                <!-- Right Actions: Language + Dark Mode + Profile -->
                 <div class="d-flex align-items-center gap-2">
                     ${langSelectorHtml}
 
@@ -191,11 +191,6 @@ async function render() {
                     <button class="btn btn-pill btn-pill-outline btn-sm px-2 px-sm-3" id="themeToggleBtn" onclick="window.toggleAppTheme()" title="${t('darkModeToggle')}">
                         <i class="fa-solid fa-${currentTheme === 'dark' ? 'sun text-warning' : 'moon text-secondary'} fs-6"></i>
                     </button>
-
-                    <!-- + New Envelope Primary CTA -->
-                    <a href="#/upload" class="btn btn-pill btn-pill-primary shadow-sm">
-                        <i class="fa-solid fa-plus me-1"></i> <span class="d-none d-sm-inline">${t('newEnvelope')}</span>
-                    </a>
 
                     ${state.user ? `
                         <!-- User Profile Pill -->

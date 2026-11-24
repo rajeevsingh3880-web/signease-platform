@@ -38,7 +38,7 @@
     --radius-md: 12px;
     --radius-lg: 16px;
     --radius-pill: 50px;
-    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ========================================================
@@ -202,8 +202,48 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    transition: background-color 0.25s ease, color 0.25s ease;
+    transition: background-color 0.32s cubic-bezier(0.4, 0, 0.2, 1), color 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     top: 0px !important;
+}
+
+/* Smooth Transitions for Theme & Interactivity */
+.navbar-custom,
+.card,
+.kpi-card,
+.wizard-card,
+.auth-card,
+.table-card,
+.offcanvas,
+.btn,
+.form-control,
+.form-select,
+.dropdown-menu,
+.trust-banner-card {
+    transition: background-color 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                color 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth Page Load Animation */
+#page-content {
+    animation: fadeInContent 0.28s ease-out;
+}
+
+@keyframes fadeInContent {
+    from {
+        opacity: 0.35;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.offcanvas.offcanvas-start {
+    transition: transform 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
 }
 
 /* ========================================================
