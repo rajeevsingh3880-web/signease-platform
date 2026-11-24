@@ -157,9 +157,17 @@ public class EmailService {
             payload.put("sender", Map.of("name", "SignEase", "email", senderEmail.trim()));
             payload.put("to", List.of(Map.of("email", toEmail.trim())));
             payload.put("subject", subject);
+
+            // Ensure htmlContent is always provided for Brevo v3 API
             if (html != null && !html.isBlank()) {
                 payload.put("htmlContent", html);
+            } else if (plainText != null && !plainText.isBlank()) {
+                payload.put("htmlContent", "<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.6;color:#1e293b;padding:24px;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;'>" +
+                        plainText.replace("\n", "<br>") + "</div>");
+            } else {
+                payload.put("htmlContent", "<p>Please view this email notification.</p>");
             }
+
             if (plainText != null && !plainText.isBlank()) {
                 payload.put("textContent", plainText);
             }
@@ -170,13 +178,14 @@ public class EmailService {
                     .uri(URI.create("https://api.brevo.com/v3/smtp/email"))
                     .timeout(Duration.ofSeconds(15))
                     .header("api-key", brevoApiKey.trim())
+                    .header("accept", "application/json")
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
                     .build();
 
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                log.info("Email dispatched successfully via Brevo HTTPS API to {}", toEmail);
+                log.info("Email dispatched successfully via Brevo HTTPS API to {}: response {}", toEmail, response.body());
                 return true;
             } else {
                 log.warn("Brevo API rejected email to {}: HTTP {} - {}", toEmail, response.statusCode(), response.body());
@@ -271,38 +280,89 @@ public class EmailService {
 
     @Async
     public void sendOtpCode(SignerInvite signer, String otpCode) {
+        String signerEmail = (signer != null && signer.getSignerEmail() != null) ? signer.getSignerEmail().trim() : "";
         log.info("==================================================");
-        log.info(">>> SIGNER OTP VERIFICATION CODE: [{}] for {}", otpCode, signer.getSignerEmail());
+        log.info(">>> SIGNER OTP VERIFICATION CODE: [{}] for {}", otpCode, signerEmail);
         log.info("==================================================");
 
-        String subject = "Your One-Time Passcode (OTP) for Document Signing";
-        String text = "Your OTP verification code is: " + otpCode + ". This code expires in 10 minutes.";
-        dispatchEmail(signer.getSignerEmail(), subject, text, null);
+        String signerName = (signer != null && signer.getSignerName() != null && !signer.getSignerName().isBlank())
+                ? signer.getSignerName().trim() : "Signer";
+        String subject = "Your One-Time Passcode (OTP) for Document Signing - " + otpCode;
+        String plainText = "Hello " + signerName + ",\n\n" +
+                "Your One-Time Passcode (OTP) for electronic document signing is:\n\n" +
+                "OTP Code: " + otpCode + "\n\n" +
+                "This code is valid for 10 minutes. Please enter this code on the signing page to authenticate your identity.\n\n" +
+                "Do not share this code with anyone.\n\n" +
+                "Best regards,\n" +
+                "The SignEase Team";
+
+        String html = "<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:550px;margin:0 auto;padding:24px;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);'>" +
+                "<div style='text-align:center;padding-bottom:16px;border-bottom:1px solid #f1f5f9;'>" +
+                "<h2 style='color:#1e293b;margin:0 0 6px 0;font-size:22px;'>🔐 Identity Verification Code</h2>" +
+                "<p style='color:#64748b;margin:0;font-size:14px;'>SignEase Secure Document Signing</p>" +
+                "</div>" +
+                "<div style='padding:24px 8px;text-align:center;'>" +
+                "<p style='color:#334155;font-size:15px;margin-bottom:20px;'>Hello <strong>" + signerName + "</strong>,</p>" +
+                "<p style='color:#475569;font-size:14px;'>Your One-Time Passcode (OTP) for electronic document signing is:</p>" +
+                "<div style='display:inline-block;letter-spacing:8px;font-size:32px;font-weight:bold;color:#2563eb;background:#eff6ff;padding:14px 28px;border-radius:8px;border:1px dashed #93c5fd;margin:16px 0;'>" +
+                otpCode +
+                "</div>" +
+                "<p style='color:#64748b;font-size:13px;margin-top:16px;'>⏱️ This OTP code is valid for <strong>10 minutes</strong>. Do not share this code with anyone.</p>" +
+                "</div>" +
+                "<div style='border-top:1px solid #f1f5f9;padding-top:16px;text-align:center;font-size:12px;color:#94a3b8;'>" +
+                "This is an automated security notification from SignEase." +
+                "</div>" +
+                "</div>";
+
+        dispatchEmail(signerEmail, subject, plainText, html);
     }
 
     @Async
     public void sendAadhaarOtpCode(SignerInvite signer, String otpCode, String maskedAadhaar) {
+        String signerEmail = (signer != null && signer.getSignerEmail() != null) ? signer.getSignerEmail().trim() : "";
         log.info("==================================================");
-        log.info(">>> AADHAAR e-KYC OTP CODE: [{}] for Aadhaar [{}] ({})", otpCode, maskedAadhaar, signer.getSignerEmail());
+        log.info(">>> AADHAAR e-KYC OTP CODE: [{}] for Aadhaar [{}] ({})", otpCode, maskedAadhaar, signerEmail);
         log.info("==================================================");
 
-        String subject = "UIDAI Aadhaar Authentication OTP for Document Signing";
-        String text = "Dear " + signer.getSignerName() + ",\n\n" +
+        String signerName = (signer != null && signer.getSignerName() != null && !signer.getSignerName().isBlank())
+                ? signer.getSignerName().trim() : "Signer";
+        String subject = "UIDAI Aadhaar Authentication OTP: " + otpCode + " - SignEase";
+        String plainText = "Dear " + signerName + ",\n\n" +
                 "Your One-Time Password (OTP) for Aadhaar eSign identity authentication (Aadhaar: " + maskedAadhaar + ") is: " + otpCode + ".\n\n" +
                 "This OTP is valid for 10 minutes. Under Section 3A of the Information Technology Act, 2000, this OTP authorizes the electronic signature of the requested document.\n\n" +
                 "Do not share this OTP with anyone for your security.";
 
-        dispatchEmail(signer.getSignerEmail(), subject, text, null);
+        String html = "<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:550px;margin:0 auto;padding:24px;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);'>" +
+                "<div style='text-align:center;padding-bottom:16px;border-bottom:1px solid #f1f5f9;'>" +
+                "<h2 style='color:#1e293b;margin:0 0 6px 0;font-size:22px;'>🇮🇳 Aadhaar eSign Authentication</h2>" +
+                "<p style='color:#64748b;margin:0;font-size:14px;'>UIDAI Simulated Identity Authentication</p>" +
+                "</div>" +
+                "<div style='padding:24px 8px;text-align:center;'>" +
+                "<p style='color:#334155;font-size:15px;margin-bottom:12px;'>Dear <strong>" + signerName + "</strong>,</p>" +
+                "<p style='color:#475569;font-size:14px;'>Aadhaar Number: <code style='font-size:15px;background:#f1f5f9;padding:2px 8px;border-radius:4px;'>" + maskedAadhaar + "</code></p>" +
+                "<p style='color:#475569;font-size:14px;margin-top:14px;'>Your One-Time Password (OTP) for Aadhaar eSign is:</p>" +
+                "<div style='display:inline-block;letter-spacing:8px;font-size:32px;font-weight:bold;color:#059669;background:#ecfdf5;padding:14px 28px;border-radius:8px;border:1px dashed #6ee7b7;margin:16px 0;'>" +
+                otpCode +
+                "</div>" +
+                "<p style='color:#64748b;font-size:13px;margin-top:16px;'>⏱️ Valid for 10 minutes under Section 3A of Information Technology Act 2000. Do not share with anyone.</p>" +
+                "</div>" +
+                "<div style='border-top:1px solid #f1f5f9;padding-top:16px;text-align:center;font-size:12px;color:#94a3b8;'>" +
+                "SignEase Secure Document Signing Platform" +
+                "</div>" +
+                "</div>";
+
+        dispatchEmail(signerEmail, subject, plainText, html);
     }
 
     @Async
     public void sendRegistrationOtpCode(String toEmail, String otpCode) {
+        String cleanEmail = (toEmail != null) ? toEmail.trim() : "";
         log.info("==================================================");
-        log.info(">>> REGISTRATION EMAIL AUTHENTICATION OTP: [{}] for {}", otpCode, toEmail);
+        log.info(">>> REGISTRATION EMAIL AUTHENTICATION OTP: [{}] for {}", otpCode, cleanEmail);
         log.info("==================================================");
 
-        String subject = "Verify Your Email Address - SignEase Platform";
-        String text = "Welcome to SignEase!\n\n" +
+        String subject = "Verify Your Email Address - OTP: " + otpCode + " - SignEase Platform";
+        String plainText = "Welcome to SignEase!\n\n" +
                 "To verify that your email address is authentic and complete your account setup, please enter the following One-Time Passcode (OTP):\n\n" +
                 "Verification OTP: " + otpCode + "\n\n" +
                 "This code is valid for 10 minutes.\n\n" +
@@ -310,7 +370,24 @@ public class EmailService {
                 "Best regards,\n" +
                 "The SignEase Team";
 
-        dispatchEmail(toEmail, subject, text, null);
+        String html = "<div style='font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;max-width:550px;margin:0 auto;padding:24px;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);'>" +
+                "<div style='text-align:center;padding-bottom:16px;border-bottom:1px solid #f1f5f9;'>" +
+                "<h2 style='color:#1e293b;margin:0 0 6px 0;font-size:22px;'>✉️ Welcome to SignEase</h2>" +
+                "<p style='color:#64748b;margin:0;font-size:14px;'>Email Address Verification</p>" +
+                "</div>" +
+                "<div style='padding:24px 8px;text-align:center;'>" +
+                "<p style='color:#475569;font-size:14px;'>Enter the following 6-digit code to complete your registration:</p>" +
+                "<div style='display:inline-block;letter-spacing:8px;font-size:32px;font-weight:bold;color:#2563eb;background:#eff6ff;padding:14px 28px;border-radius:8px;border:1px dashed #93c5fd;margin:16px 0;'>" +
+                otpCode +
+                "</div>" +
+                "<p style='color:#64748b;font-size:13px;margin-top:16px;'>⏱️ Valid for <strong>10 minutes</strong>. If you did not request this, please disregard.</p>" +
+                "</div>" +
+                "<div style='border-top:1px solid #f1f5f9;padding-top:16px;text-align:center;font-size:12px;color:#94a3b8;'>" +
+                "SignEase Secure Document Signing Platform" +
+                "</div>" +
+                "</div>";
+
+        dispatchEmail(cleanEmail, subject, plainText, html);
     }
 
     @Async

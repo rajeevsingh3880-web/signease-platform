@@ -2103,14 +2103,11 @@ async function renderSignerPage(container, token) {
                 try {
                     const r = await api.requestOtp(token);
                     document.getElementById('otpInputArea').style.display = 'block';
-                    let otpNote = `<span class="text-success"><i class="fa-solid fa-envelope-circle-check me-1"></i> ${r.message || 'OTP sent to your email.'}<br><small class="text-muted"><i class="fa-solid fa-clock me-1"></i> Please check your inbox or spam folder. Valid for 10 minutes.</small></span>`;
-                    if (r.testOtp) {
-                        const otpInputField = document.getElementById('signerOtp');
-                        if (otpInputField) otpInputField.value = r.testOtp;
-                        otpNote += `<div class="mt-2 p-2 rounded bg-primary-subtle border border-primary-subtle text-primary fw-semibold small"><i class="fa-solid fa-key me-1"></i> Verification Passcode: <span class="badge bg-primary fs-6 px-2 py-1">${r.testOtp}</span> <span class="text-muted fw-normal ms-1">(Auto-filled for instant verification)</span></div>`;
-                        showToast(`Verification code: ${r.testOtp} (Auto-filled)`);
-                    }
+                    const otpInputField = document.getElementById('signerOtp');
+                    if (otpInputField) otpInputField.value = '';
+                    const otpNote = `<span class="text-success"><i class="fa-solid fa-envelope-circle-check me-1"></i> ${r.message || 'Verification OTP code has been dispatched to your email address.'}<br><small class="text-muted"><i class="fa-solid fa-clock me-1"></i> Please check your inbox or spam folder. Valid for 10 minutes.</small></span>`;
                     document.getElementById('otpMsg').innerHTML = otpNote;
+                    showToast(r.message || 'OTP sent to your email.');
 
                     let timeLeft = 60;
                     getOtpBtn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
