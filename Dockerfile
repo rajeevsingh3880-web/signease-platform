@@ -14,14 +14,14 @@ RUN npm run build
 FROM maven:3.9.6-eclipse-temurin-21-alpine AS backend-builder
 WORKDIR /app/backend
 COPY backend/pom.xml .
-RUN mvn dependency:go-offline -B
+COPY backend/settings.xml .
 COPY backend/src ./src
 
 # Copy built frontend assets to Spring Boot static resources and templates
 COPY --from=frontend-builder /app/frontend/dist ./src/main/resources/static/
 COPY --from=frontend-builder /app/frontend/dist/index.html ./src/main/resources/templates/index.html
 
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -s settings.xml -DskipTests -B
 
 # Stage 3: Lightweight Production Runtime
 FROM eclipse-temurin:21-jre-alpine
