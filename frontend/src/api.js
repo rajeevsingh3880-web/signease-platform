@@ -1,9 +1,8 @@
 // Central API Client for SignEase Platform Backend
-const API_HOST = (typeof window !== 'undefined' && window.location.hostname) ? window.location.hostname : 'localhost';
-const DEFAULT_LOCAL_URL = `http://${API_HOST}:8080/api/v1`;
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL)
     ? import.meta.env.VITE_API_BASE_URL
-    : DEFAULT_LOCAL_URL;
+    : (isLocalhost && window.location.port === '5173' ? 'http://localhost:8080/api/v1' : '/api/v1');
 
 export const api = {
     getToken() {
