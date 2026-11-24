@@ -177,15 +177,6 @@ async function render() {
                         <div class="brand-icon"><i class="fa-solid fa-pen-nib"></i></div>
                         <span>Sign<span class="text-primary">Ease</span></span>
                     </a>
-
-                    <!-- Desktop Nav Links -->
-                    <div class="d-none d-xl-flex align-items-center gap-1 ms-3">
-                        <a class="nav-link ${path === 'dashboard' ? 'active' : ''}" href="#/dashboard"><i class="fa-solid fa-chart-pie me-1"></i> ${t('dashboard')}</a>
-                        <a class="nav-link ${path === 'documents' ? 'active' : ''}" href="#/documents"><i class="fa-regular fa-folder me-1"></i> ${t('documents')}</a>
-                        <a class="nav-link ${path === 'send' || path === 'upload' ? 'active' : ''}" href="#/upload"><i class="fa-solid fa-paper-plane me-1"></i> ${t('send')}</a>
-                        <a class="nav-link ${path === 'verify' ? 'active' : ''}" href="#/verify"><i class="fa-solid fa-shield-halved me-1 text-success"></i> ${t('verify')}</a>
-                        ${state.user?.role === 'ADMIN' ? `<a class="nav-link text-danger ${path === 'admin' ? 'active' : ''}" href="#/admin"><i class="fa-solid fa-shield me-1"></i> ${t('admin')}</a>` : ''}
-                    </div>
                 </div>
 
                 <!-- Right Actions: Language + Dark Mode + + New Envelope + Profile -->
