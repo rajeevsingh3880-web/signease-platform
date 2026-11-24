@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { t, getLang, setLang } from './i18n.js';
+import { t, getLang, setLang, supportedLanguages } from './i18n.js';
 
 // Application State
 const state = {
@@ -7,13 +7,13 @@ const state = {
     route: window.location.hash || '#/'
 };
 
-// Global Language Change Action
+// Global Native Language Change Action (100% native, zero external dependencies)
 window.changeAppLanguage = function(lang) {
     setLang(lang);
-    if (typeof setGoogleLang === 'function') {
-        setGoogleLang(lang);
-    }
+    document.documentElement.setAttribute('lang', lang);
     render();
+    const lObj = supportedLanguages.find(l => l.code === lang);
+    showToast(`Language switched to ${lObj ? lObj.native : lang}`);
 };
 
 // Router
@@ -143,22 +143,26 @@ async function render() {
     const userName = state.user?.fullName || 'Rajesh Sharma';
     const userOrg = state.user?.organization || 'Admin Vault';
 
-    // Language Selector Component HTML
+    const currentLang = getLang();
+    const currentLangObj = supportedLanguages.find(l => l.code === currentLang) || supportedLanguages[0];
+
+    // Native Language Selector Component HTML (Pure native, zero external dependencies)
     const langSelectorHtml = `
         <div class="dropdown">
-            <button class="btn btn-pill btn-pill-outline btn-sm shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" id="langSelectorBtn">
+            <button class="btn btn-pill btn-pill-outline btn-sm shadow-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" id="langSelectorBtn" title="Change Language / भाषा बदलें">
                 <i class="fa-solid fa-globe text-primary me-1"></i>
-                <span>${getLang() === 'hi' ? '🇮🇳 हिन्दी' : '🌐 EN / हिन्दी'}</span>
+                <span>${currentLangObj.flag} ${currentLangObj.native}</span>
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; min-width: 215px; z-index: 1050;">
-                <li><h6 class="dropdown-header fw-bold text-uppercase text-primary small">Select Language / भाषा चुनें</h6></li>
-                <li><a class="dropdown-item notranslate py-2 ${getLang() === 'en' ? 'fw-bold active bg-primary text-white' : ''}" href="javascript:void(0)" onclick="window.changeAppLanguage('en')">🇬🇧 English</a></li>
-                <li><a class="dropdown-item notranslate py-2 ${getLang() === 'hi' ? 'fw-bold active bg-primary text-white' : ''}" href="javascript:void(0)" onclick="window.changeAppLanguage('hi')">🇮🇳 हिन्दी (Hindi)</a></li>
-                <li><a class="dropdown-item notranslate py-2 ${getLang() === 'mr' ? 'fw-bold active bg-primary text-white' : ''}" href="javascript:void(0)" onclick="window.changeAppLanguage('mr')">🇮🇳 मराठी (Marathi)</a></li>
-                <li><a class="dropdown-item notranslate py-2 ${getLang() === 'gu' ? 'fw-bold active bg-primary text-white' : ''}" href="javascript:void(0)" onclick="window.changeAppLanguage('gu')">🇮🇳 ગુજરાતી (Gujarati)</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li class="dropdown-header small text-muted">More Languages / अन्य 100+ भाषाएं:</li>
-                <li class="px-3 py-1"><div id="google_translate_element"></div></li>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; min-width: 210px; z-index: 1050;">
+                <li><h6 class="dropdown-header fw-bold text-uppercase text-primary small">Select Language / भाषा</h6></li>
+                ${supportedLanguages.map(l => `
+                    <li>
+                        <button class="dropdown-item py-2 d-flex align-items-center justify-content-between ${currentLang === l.code ? 'active fw-bold' : ''}" type="button" onclick="window.changeAppLanguage('${l.code}')">
+                            <span>${l.flag} ${l.native} <small class="text-muted ms-1">(${l.name})</small></span>
+                            ${currentLang === l.code ? '<i class="fa-solid fa-check text-primary ms-2"></i>' : ''}
+                        </button>
+                    </li>
+                `).join('')}
             </ul>
         </div>
     `;
@@ -279,8 +283,26 @@ async function render() {
                     </a>
                 </div>
 
-                <!-- Bottom Drawer Actions: Theme Toggle & Logout -->
+                <!-- Bottom Drawer Actions: Language + Theme Toggle & Logout -->
                 <div class="pt-3 border-top" style="border-color: var(--border-color);">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="small fw-semibold text-muted">Language:</span>
+                        <div class="dropdown">
+                            <button class="btn btn-pill btn-pill-outline btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <span>${currentLangObj.flag} ${currentLangObj.native}</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; min-width: 200px;">
+                                ${supportedLanguages.map(l => `
+                                    <li>
+                                        <button class="dropdown-item py-2 d-flex align-items-center justify-content-between ${currentLang === l.code ? 'active fw-bold' : ''}" type="button" onclick="window.changeAppLanguage('${l.code}')">
+                                            <span>${l.flag} ${l.native}</span>
+                                            ${currentLang === l.code ? '<i class="fa-solid fa-check text-primary"></i>' : ''}
+                                        </button>
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    </div>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="small fw-semibold text-muted">Theme:</span>
                         <button class="btn btn-pill btn-pill-outline btn-sm px-3" onclick="window.toggleAppTheme()">
@@ -1778,27 +1800,34 @@ async function renderSignerPage(container, token) {
             <div class="container py-4" style="max-width: 860px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="d-flex align-items-center">
-                        <i class="fa-solid fa-file-signature text-primary fs-3 me-2"></i>
-                        <span class="fs-4 fw-bold text-primary">Sign<span class="text-dark">Ease</span></span>
+                        <div class="brand-icon me-2"><i class="fa-solid fa-pen-nib"></i></div>
+                        <span class="fs-4 fw-bold text-main">Sign<span class="text-primary">Ease</span></span>
                         <span class="badge bg-primary-subtle text-primary ms-2 rounded-pill small">${t('signerWelcome')}</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <div class="dropdown">
-                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                <i class="fa-solid fa-globe me-1"></i> ${getLang() === 'hi' ? '🇮🇳 हिन्दी' : (getLang() === 'mr' ? '🇮🇳 मराठी' : (getLang() === 'gu' ? '🇮🇳 ગુજરાતી' : '🌐 Language'))}
+                            <button class="btn btn-sm btn-pill-outline dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fa-solid fa-globe text-primary me-1"></i> ${supportedLanguages.find(l => l.code === getLang())?.native || 'English'}
                             </button>
-                            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
-                                <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="window.changeAppLanguage('en')">🇬🇧 English</a></li>
-                                <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="window.changeAppLanguage('hi')">🇮🇳 हिन्दी (Hindi)</a></li>
-                                <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="window.changeAppLanguage('mr')">🇮🇳 मराठी (Marathi)</a></li>
-                                <li><a class="dropdown-item notranslate" href="javascript:void(0)" onclick="window.changeAppLanguage('gu')">🇮🇳 ગુજરાતી (Gujarati)</a></li>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; min-width: 200px;">
+                                ${supportedLanguages.map(l => `
+                                    <li>
+                                        <button class="dropdown-item py-2 d-flex align-items-center justify-content-between ${getLang() === l.code ? 'active fw-bold' : ''}" type="button" onclick="window.changeAppLanguage('${l.code}')">
+                                            <span>${l.flag} ${l.native}</span>
+                                            ${getLang() === l.code ? '<i class="fa-solid fa-check text-primary"></i>' : ''}
+                                        </button>
+                                    </li>
+                                `).join('')}
                             </ul>
                         </div>
+                        <button class="btn btn-pill btn-pill-outline btn-sm px-2" onclick="window.toggleAppTheme()" title="${t('darkModeToggle')}">
+                            <i class="fa-solid fa-${currentTheme === 'dark' ? 'sun text-warning' : 'moon text-secondary'}"></i>
+                        </button>
                         <div class="small text-muted d-none d-sm-block">${t('requestedBy')} <strong>${ctx.senderName}</strong></div>
                     </div>
                 </div>
 
-                <div class="card border-0 shadow-sm bg-white p-4 p-md-5 mb-4">
+                <div class="card border-0 shadow-sm p-4 p-md-5 mb-4" style="background: var(--bg-card); border: 1px solid var(--border-color) !important; border-radius: var(--radius-lg);">
                     <div class="border-bottom pb-3 mb-4 d-flex justify-content-between align-items-start">
                         <div>
                             <span class="badge bg-warning-subtle text-warning fw-bold mb-1">Awaiting Signature</span>

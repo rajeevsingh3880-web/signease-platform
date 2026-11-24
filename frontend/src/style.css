@@ -779,30 +779,7 @@ footer {
     transition: var(--transition);
 }
 
-/* Hide Google Translate Banner Frame */
-.goog-te-banner-frame.skiptranslate,
-.goog-te-banner-frame,
-#goog-gt-tt,
-.goog-te-balloon-frame {
-    display: none !important;
-}
 
-.goog-te-gadget-simple {
-    background-color: transparent !important;
-    border: none !important;
-    font-size: 0.85rem !important;
-    padding: 0 !important;
-}
-
-.goog-te-combo {
-    padding: 4px 8px;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    font-size: 0.85rem;
-    background: var(--bg-card);
-    color: var(--text-main);
-    width: 100%;
-}
 
 /* ========================================================
    Auth Cards & Pages (Login, Register, OTP)

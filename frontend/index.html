@@ -14,34 +14,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/src/style.css">
 
-    <!-- Google Translate Script & Helpers -->
-    <script type="text/javascript">
-        function googleTranslateElementInit() {
-            new google.translate.TranslateElement({
-                pageLanguage: 'en',
-                includedLanguages: 'hi,mr,gu,bn,ta,te,kn,pa,ur,es,fr,de,ar,ru,zh-CN,ja,en',
-                layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-                autoDisplay: false
-            }, 'google_translate_element');
-        }
-
-        function setGoogleLang(langCode) {
-            var select = document.querySelector('.goog-te-combo');
-            if (select) {
-                select.value = langCode;
-                select.dispatchEvent(new Event('change'));
-            } else {
-                document.cookie = 'googtrans=/en/' + langCode + '; path=/;';
-                document.cookie = 'googtrans=/en/' + langCode + '; path=/; domain=' + window.location.hostname + ';';
-            }
-        }
-    </script>
-    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <!-- Pre-render Theme Initialization to prevent flash -->
     <script>
         (function() {
             var theme = localStorage.getItem('signease_theme') || 'light';
             document.documentElement.setAttribute('data-bs-theme', theme);
+            var lang = localStorage.getItem('signease_lang') || 'en';
+            document.documentElement.setAttribute('lang', lang);
         })();
     </script>
 </head>
