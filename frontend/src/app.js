@@ -536,33 +536,12 @@ function renderLogin(container) {
                     </button>
                 </form>
 
-                <div class="auth-box-subtle mb-3">
-                    <div class="small fw-bold text-muted mb-2 text-uppercase" style="font-size: 0.72rem;">Quick 1-Click Demo Logins</div>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-pill-outline flex-fill" id="fillAdminBtn">
-                            <i class="fa-solid fa-user-shield me-1"></i> Admin
-                        </button>
-                        <button type="button" class="btn btn-sm btn-pill-outline flex-fill" id="fillSenderBtn">
-                            <i class="fa-solid fa-user-pen me-1"></i> Demo User
-                        </button>
-                    </div>
-                </div>
-
                 <div class="text-center text-muted small">
                     ${t('dontHaveAccount')} <a href="#/register" class="fw-semibold text-primary text-decoration-none">${t('signUpHere')}</a>
                 </div>
             </div>
         </div>
     `;
-
-    document.getElementById('fillAdminBtn').onclick = () => {
-        document.getElementById('loginEmail').value = 'admin@esign.com';
-        document.getElementById('loginPassword').value = 'admin123';
-    };
-    document.getElementById('fillSenderBtn').onclick = () => {
-        document.getElementById('loginEmail').value = 'demo@esign.com';
-        document.getElementById('loginPassword').value = 'password123';
-    };
 
     document.getElementById('loginForm').onsubmit = async (e) => {
         e.preventDefault();
@@ -621,7 +600,7 @@ function renderRegister(container) {
                             <span class="input-group-text border-end-0"><i class="fa-regular fa-envelope"></i></span>
                             <input type="email" id="regEmail" class="form-control border-start-0" placeholder="name@domain.com" required>
                             <button type="button" class="btn btn-pill-primary fw-semibold px-3" id="sendEmailOtpBtn">
-                                <i class="fa-solid fa-paper-plane me-1"></i> ${t('btnGetOtp')}
+                                <i class="fa-solid fa-key me-1"></i> ${t('btnGetOtp')}
                             </button>
                         </div>
                         <div class="form-text small text-muted">${t('otpDispatchedMsg')}</div>
@@ -652,8 +631,46 @@ function renderRegister(container) {
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">${t('password')} *</label>
-                        <input type="password" id="regPass" class="form-control" placeholder="••••••••" minlength="6" required>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold text-muted mb-0">${t('password')} *</label>
+                            <button type="button" id="suggestPassBtn" class="btn btn-sm btn-link text-primary text-decoration-none p-0 fw-semibold" style="font-size: 0.8rem;">
+                                <i class="fa-solid fa-wand-magic-sparkles me-1"></i> ${t('suggestPassword')}
+                            </button>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="regPass" class="form-control" placeholder="Create strong password" required autocomplete="new-password">
+                            <button type="button" class="btn btn-outline-secondary" id="togglePassVisibilityBtn" title="Show / Hide Password">
+                                <i class="fa-solid fa-eye" id="togglePassEyeIcon"></i>
+                            </button>
+                        </div>
+
+                        <!-- Real-time Password Strength Bar -->
+                        <div class="progress mt-2" style="height: 5px; border-radius: 4px; background: rgba(148, 163, 184, 0.2);">
+                            <div id="passStrengthBar" class="progress-bar bg-danger" role="progressbar" style="width: 0%; transition: width 0.3s, background-color 0.3s;"></div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <span id="passStrengthLabel" class="small fw-semibold text-muted" style="font-size: 0.75rem;">Password Strength: —</span>
+                            <span id="passCopyAlert" class="small text-success d-none" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-check me-1"></i> Copied to clipboard</span>
+                        </div>
+
+                        <!-- Requirement Checklist -->
+                        <div class="p-2 mt-2 rounded bg-body-tertiary border border-subtle small" style="font-size: 0.78rem;">
+                            <div class="row g-1">
+                                <div class="col-6 text-muted" id="ruleLength">
+                                    <i class="fa-regular fa-circle text-muted me-1"></i> ${t('passwordReqLength')}
+                                </div>
+                                <div class="col-6 text-muted" id="ruleLetters">
+                                    <i class="fa-regular fa-circle text-muted me-1"></i> ${t('passwordReqLetters')}
+                                </div>
+                                <div class="col-6 text-muted" id="ruleNumbers">
+                                    <i class="fa-regular fa-circle text-muted me-1"></i> ${t('passwordReqNumbers')}
+                                </div>
+                                <div class="col-6 text-muted" id="ruleSymbols">
+                                    <i class="fa-regular fa-circle text-muted me-1"></i> ${t('passwordReqSymbols')}
+                                </div>
+                            </div>
+                        </div>
+                        <div id="regPassAlert" class="small mt-1 text-danger"></div>
                     </div>
 
                     <button type="submit" id="submitRegBtn" class="btn btn-pill btn-pill-primary w-100 py-2 fw-semibold mb-3 justify-content-center shadow-sm">
@@ -704,7 +721,7 @@ function renderRegister(container) {
             return true;
         } catch (err) {
             sendBtn.disabled = false;
-            sendBtn.innerHTML = '<i class="fa-solid fa-paper-plane me-1"></i> ' + t('btnGetOtp');
+            sendBtn.innerHTML = '<i class="fa-solid fa-key me-1"></i> ' + t('btnGetOtp');
             document.getElementById('regEmailAlert').innerHTML = `<span class="text-danger fw-medium"><i class="fa-solid fa-triangle-exclamation me-1"></i> ${err.message}</span>`;
             return false;
         }
@@ -733,10 +750,133 @@ function renderRegister(container) {
         }
     };
 
+    // Password Strength & Requirement Validator
+    const passInput = document.getElementById('regPass');
+    const checkPasswordStrength = (val) => {
+        val = val || '';
+        const hasLength = val.length >= 8;
+        const hasLetters = /[a-zA-Z]/.test(val);
+        const hasNumbers = /[0-9]/.test(val);
+        const hasSymbols = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(val);
+
+        const updateRule = (elemId, passed, label) => {
+            const el = document.getElementById(elemId);
+            if (!el) return;
+            if (passed) {
+                el.className = 'col-6 text-success fw-medium';
+                el.innerHTML = `<i class="fa-solid fa-circle-check text-success me-1"></i> ${label}`;
+            } else {
+                el.className = 'col-6 text-muted';
+                el.innerHTML = `<i class="fa-regular fa-circle text-muted me-1"></i> ${label}`;
+            }
+        };
+
+        updateRule('ruleLength', hasLength, t('passwordReqLength'));
+        updateRule('ruleLetters', hasLetters, t('passwordReqLetters'));
+        updateRule('ruleNumbers', hasNumbers, t('passwordReqNumbers'));
+        updateRule('ruleSymbols', hasSymbols, t('passwordReqSymbols'));
+
+        let score = 0;
+        if (hasLength) score++;
+        if (hasLetters) score++;
+        if (hasNumbers) score++;
+        if (hasSymbols) score++;
+
+        const bar = document.getElementById('passStrengthBar');
+        const label = document.getElementById('passStrengthLabel');
+        if (!val) {
+            if (bar) { bar.style.width = '0%'; bar.className = 'progress-bar bg-danger'; }
+            if (label) { label.textContent = 'Password Strength: —'; label.className = 'small fw-semibold text-muted'; }
+        } else if (score <= 1) {
+            if (bar) { bar.style.width = '25%'; bar.className = 'progress-bar bg-danger'; }
+            if (label) { label.textContent = 'Password Strength: Weak'; label.className = 'small fw-semibold text-danger'; }
+        } else if (score === 2) {
+            if (bar) { bar.style.width = '50%'; bar.className = 'progress-bar bg-warning'; }
+            if (label) { label.textContent = 'Password Strength: Fair'; label.className = 'small fw-semibold text-warning'; }
+        } else if (score === 3) {
+            if (bar) { bar.style.width = '75%'; bar.className = 'progress-bar bg-info'; }
+            if (label) { label.textContent = 'Password Strength: Good'; label.className = 'small fw-semibold text-info'; }
+        } else {
+            if (bar) { bar.style.width = '100%'; bar.className = 'progress-bar bg-success'; }
+            if (label) { label.textContent = 'Password Strength: Strong & Secure ✓'; label.className = 'small fw-semibold text-success'; }
+        }
+
+        return (hasLength && hasLetters && hasNumbers && hasSymbols);
+    };
+
+    if (passInput) {
+        passInput.oninput = () => {
+            checkPasswordStrength(passInput.value);
+            const alertEl = document.getElementById('regPassAlert');
+            if (alertEl) alertEl.innerHTML = '';
+        };
+    }
+
+    // Toggle Show / Hide Password
+    const togglePassBtn = document.getElementById('togglePassVisibilityBtn');
+    if (togglePassBtn) {
+        togglePassBtn.onclick = () => {
+            const isPass = passInput.type === 'password';
+            passInput.type = isPass ? 'text' : 'password';
+            const eye = document.getElementById('togglePassEyeIcon');
+            if (eye) eye.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+        };
+    }
+
+    // Suggest Strong Password Generator
+    const suggestPassBtn = document.getElementById('suggestPassBtn');
+    if (suggestPassBtn) {
+        suggestPassBtn.onclick = () => {
+            const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+            const lower = 'abcdefghijkmnopqrstuvwxyz';
+            const numbers = '23456789';
+            const symbols = '!@#$%^&*_-+=';
+
+            let generated = '';
+            for (let i = 0; i < 4; i++) generated += upper[Math.floor(Math.random() * upper.length)];
+            for (let i = 0; i < 4; i++) generated += lower[Math.floor(Math.random() * lower.length)];
+            for (let i = 0; i < 3; i++) generated += numbers[Math.floor(Math.random() * numbers.length)];
+            for (let i = 0; i < 3; i++) generated += symbols[Math.floor(Math.random() * symbols.length)];
+
+            generated = generated.split('').sort(() => 0.5 - Math.random()).join('');
+
+            passInput.value = generated;
+            passInput.type = 'text';
+            const eye = document.getElementById('togglePassEyeIcon');
+            if (eye) eye.className = 'fa-solid fa-eye-slash';
+
+            checkPasswordStrength(generated);
+            const alertEl = document.getElementById('regPassAlert');
+            if (alertEl) alertEl.innerHTML = '';
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(generated).then(() => {
+                    const copyAlert = document.getElementById('passCopyAlert');
+                    if (copyAlert) {
+                        copyAlert.classList.remove('d-none');
+                        setTimeout(() => copyAlert.classList.add('d-none'), 3500);
+                    }
+                }).catch(() => {});
+            }
+            showToast('Strong password suggested and applied!');
+        };
+    }
+
     document.getElementById('regForm').onsubmit = async (e) => {
         e.preventDefault();
         const email = document.getElementById('regEmail').value.trim();
         const otpCode = document.getElementById('regOtpCode').value.trim();
+        const password = document.getElementById('regPass').value;
+
+        const isStrong = checkPasswordStrength(password);
+        if (!isStrong) {
+            document.getElementById('regPassAlert').innerHTML = `
+                <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                Password must be at least 8 characters and include letters, numbers, and special symbols.
+            `;
+            document.getElementById('regPass').focus();
+            return;
+        }
 
         if (!otpCode || otpCode.length !== 6) {
             alert('Please click "Get OTP" and enter the 6-digit verification code sent to your email.');
