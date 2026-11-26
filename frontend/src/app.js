@@ -225,10 +225,12 @@ async function render() {
         <nav class="navbar-custom">
             <div class="container-fluid px-lg-4 d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center gap-2">
-                    <!-- 3 Lines Hamburger Menu Button (Always visible on left side) -->
-                    <button class="nav-menu-trigger me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" title="Menu / मेनू">
-                        <i class="fa-solid fa-bars"></i>
-                    </button>
+                    <!-- 3 Lines Hamburger Menu Button (Only visible when user is logged in) -->
+                    ${state.user ? `
+                        <button class="nav-menu-trigger me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" title="Menu / मेनू">
+                            <i class="fa-solid fa-bars"></i>
+                        </button>
+                    ` : ''}
 
                     <a class="brand-logo" href="#/">
                         <div class="brand-icon"><i class="fa-solid fa-pen-nib"></i></div>
@@ -261,6 +263,7 @@ async function render() {
                                 <li><a class="dropdown-item py-2" href="#/profile"><i class="fa-solid fa-user-circle me-2 text-primary"></i> ${t('myProfile')}</a></li>
                                 <li><a class="dropdown-item py-2" href="#/dashboard"><i class="fa-solid fa-chart-line me-2 text-muted"></i> ${t('dashboard')}</a></li>
                                 <li><a class="dropdown-item py-2" href="#/documents"><i class="fa-regular fa-folder me-2 text-muted"></i> ${t('documents')}</a></li>
+                                <li><a class="dropdown-item py-2" href="#/reports"><i class="fa-solid fa-file-csv me-2 text-muted"></i> ${t('reportGeneration')}</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <button class="dropdown-item py-2 text-danger" id="logoutBtn">
@@ -293,6 +296,9 @@ async function render() {
                     </a>
                     <a class="sidebar-nav-link ${path === 'documents' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/documents')">
                         <i class="fa-regular fa-folder me-2 text-primary"></i> ${t('documents')}
+                    </a>
+                    <a class="sidebar-nav-link ${path === 'reports' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/reports')">
+                        <i class="fa-solid fa-file-csv me-2 text-primary"></i> ${t('reportGeneration')}
                     </a>
                     ${state.user?.role === 'ADMIN' ? `
                         <a class="sidebar-nav-link text-danger ${path === 'admin' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/admin')">
@@ -347,7 +353,7 @@ async function render() {
     const content = document.getElementById('page-content');
 
     // Route Dispatcher
-    if (!state.user && !['', '/', 'login', 'register', 'verify'].includes(path)) {
+    if (!state.user && !['', '/', 'login', 'register', 'forgot-password', 'verify'].includes(path)) {
         showToast('Please sign in first to access this page.', 'warning');
         window.location.hash = '#/login';
         return;
@@ -363,6 +369,10 @@ async function render() {
         renderLogin(content);
     } else if (path === 'register') {
         renderRegister(content);
+    } else if (path === 'forgot-password') {
+        renderForgotPassword(content);
+    } else if (path === 'reports') {
+        renderReports(content);
     } else if (path === 'dashboard') {
         renderDashboard(content);
     } else if (path === 'documents') {
@@ -495,7 +505,10 @@ function renderLogin(container) {
                         <input type="email" id="loginEmail" class="form-control" placeholder="name@company.com" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">${t('password')}</label>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold text-muted mb-0">${t('password')}</label>
+                            <a href="#/forgot-password" class="small text-primary text-decoration-none fw-semibold">${t('forgotPassword')}</a>
+                        </div>
                         <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required>
                     </div>
                     <button type="submit" class="btn btn-pill btn-pill-primary w-100 py-2 fw-semibold mb-3 justify-content-center shadow-sm">
@@ -878,21 +891,362 @@ function renderRegister(container) {
     };
 }
 
-// 4. Modern Enterprise Dashboard View (Matches Screenshot 4)
+// 3.1 Forgot Password Page with Email OTP Verification & Secure Password Reset
+function renderForgotPassword(container) {
+    let otpDispatched = false;
+
+    container.innerHTML = `
+        <div class="auth-wrapper">
+            <div class="auth-card" style="max-width: 480px;">
+                <div class="text-center mb-4">
+                    <a href="#/" class="brand-logo justify-content-center mb-3 fs-3">
+                        <div class="brand-icon"><i class="fa-solid fa-pen-nib"></i></div>
+                        <span>Sign<span class="text-primary">Ease</span></span>
+                    </a>
+                    <h4 class="fw-bold mb-1">${t('forgotPassword')}</h4>
+                    <p class="text-muted small">Enter your email address to receive an account recovery OTP.</p>
+                </div>
+
+                <form id="forgotPassForm">
+                    <!-- Step 1: Email Address -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-muted">${t('emailAddress')} *</label>
+                        <div class="input-group">
+                            <span class="input-group-text border-end-0"><i class="fa-regular fa-envelope"></i></span>
+                            <input type="email" id="forgotEmail" class="form-control border-start-0" placeholder="name@company.com" required>
+                            <button type="button" class="btn btn-pill-primary fw-semibold px-3" id="sendForgotOtpBtn">
+                                <i class="fa-solid fa-key me-1"></i> ${t('btnGetOtp')}
+                            </button>
+                        </div>
+                        <div class="form-text small text-muted">A 6-digit OTP will be dispatched to verify your identity.</div>
+                        <div id="forgotEmailAlert" class="small mt-1"></div>
+                    </div>
+
+                    <!-- Step 2: OTP and New Password (Hidden until OTP is requested) -->
+                    <div id="resetFieldsContainer" class="d-none">
+                        <!-- Email OTP Verification Box -->
+                        <div class="auth-box-subtle mb-3">
+                            <label class="form-label small fw-bold text-primary mb-1">
+                                <i class="fa-solid fa-shield-halved me-1"></i> ${t('otpLabel')} *
+                            </label>
+                            <div class="input-group mb-2">
+                                <input type="text" id="forgotOtpCode" class="form-control font-monospace text-center fs-5 fw-bold" placeholder="------" maxlength="6" required autocomplete="one-time-code">
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted" id="forgotOtpCooldownNote">Code valid for 10 minutes</small>
+                                <button type="button" class="btn btn-link btn-sm text-primary p-0 text-decoration-none small fw-semibold" id="resendForgotOtpBtn">Resend OTP</button>
+                            </div>
+                        </div>
+
+                        <!-- New Password Section -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-semibold text-muted mb-0">New ${t('password')} *</label>
+                                <button type="button" id="suggestResetPassBtn" class="btn btn-sm btn-link text-primary text-decoration-none p-0 fw-semibold" style="font-size: 0.8rem;">
+                                    <i class="fa-solid fa-wand-magic-sparkles me-1"></i> ${t('suggestPassword')}
+                                </button>
+                            </div>
+                            <div class="input-group">
+                                <input type="password" id="resetPass" class="form-control" placeholder="Create new strong password" required autocomplete="new-password">
+                                <button type="button" class="btn btn-outline-secondary" id="toggleResetPassBtn" title="Show / Hide Password">
+                                    <i class="fa-solid fa-eye" id="toggleResetEyeIcon"></i>
+                                </button>
+                            </div>
+
+                            <!-- Real-time Password Strength Bar -->
+                            <div class="progress mt-2" style="height: 5px; border-radius: 4px; background: rgba(148, 163, 184, 0.2);">
+                                <div id="resetStrengthBar" class="progress-bar bg-danger" role="progressbar" style="width: 0%; transition: width 0.3s, background-color 0.3s;"></div>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                <span id="resetStrengthLabel" class="small fw-semibold text-muted" style="font-size: 0.75rem;">Password Strength: —</span>
+                                <span id="resetCopyAlert" class="small text-success d-none" style="font-size: 0.75rem;"><i class="fa-solid fa-circle-check me-1"></i> Copied to clipboard</span>
+                            </div>
+
+                            <!-- Requirement Checklist -->
+                            <div class="p-2 mt-2 rounded bg-body-tertiary border border-subtle small" style="font-size: 0.78rem;">
+                                <div class="row g-1">
+                                    <div class="col-6 text-muted" id="resetRuleLength">
+                                        <i class="fa-regular fa-circle text-muted me-1"></i> ${t('passwordReqLength')}
+                                    </div>
+                                    <div class="col-6 text-muted" id="resetRuleLetters">
+                                        <i class="fa-regular fa-circle text-muted me-1"></i> ${t('passwordReqLetters')}
+                                    </div>
+                                    <div class="col-6 text-muted" id="resetRuleNumbers">
+                                        <i class="fa-regular fa-circle text-muted me-1"></i> ${t('passwordReqNumbers')}
+                                    </div>
+                                    <div class="col-6 text-muted" id="resetRuleSymbols">
+                                        <i class="fa-regular fa-circle text-muted me-1"></i> ${t('passwordReqSymbols')}
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="resetPassAlert" class="small mt-1 text-danger"></div>
+                        </div>
+
+                        <!-- Confirm New Password -->
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold text-muted">Confirm New Password *</label>
+                            <input type="password" id="confirmResetPass" class="form-control" placeholder="Re-enter new password" required autocomplete="new-password">
+                            <div id="confirmPassAlert" class="small mt-1 text-danger"></div>
+                        </div>
+
+                        <button type="submit" id="submitResetBtn" class="btn btn-pill btn-pill-primary w-100 py-2 fw-semibold mb-3 justify-content-center shadow-sm">
+                            <i class="fa-solid fa-lock-open me-1"></i> ${t('resetPassword')}
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center text-muted small mt-2">
+                    Remember your password? <a href="#/login" class="fw-semibold text-primary text-decoration-none">${t('signInHere')}</a>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const sendForgotOtpAction = async () => {
+        const email = document.getElementById('forgotEmail').value.trim();
+        if (!email || !email.includes('@')) {
+            showToast('Please enter a valid email address first.', 'warning');
+            document.getElementById('forgotEmail').focus();
+            return false;
+        }
+
+        const btn = document.getElementById('sendForgotOtpBtn');
+        const alertEl = document.getElementById('forgotEmailAlert');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Sending...';
+
+        try {
+            const resp = await api.sendForgotPasswordOtp(email);
+            otpDispatched = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-check text-success me-1"></i> Sent!';
+            alertEl.className = 'small mt-1 text-success fw-medium';
+            alertEl.innerHTML = `<i class="fa-solid fa-paper-plane me-1"></i> 6-digit OTP code sent to <strong>${email}</strong>! Check your inbox (and spam folder).`;
+
+            // Reveal step 2 fields
+            const resetContainer = document.getElementById('resetFieldsContainer');
+            if (resetContainer) {
+                resetContainer.classList.remove('d-none');
+                document.getElementById('forgotOtpCode').focus();
+            }
+
+            showToast('Password recovery OTP sent to your email!');
+
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-rotate-right me-1"></i> Resend OTP';
+            }, 30000);
+            return true;
+        } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+            alertEl.className = 'small mt-1 text-danger fw-medium';
+            alertEl.innerHTML = `<i class="fa-solid fa-circle-exclamation me-1"></i> ${err.message}`;
+            showToast(err.message, 'danger');
+            return false;
+        }
+    };
+
+    const sendOtpBtn = document.getElementById('sendForgotOtpBtn');
+    if (sendOtpBtn) sendOtpBtn.onclick = sendForgotOtpAction;
+
+    const resendBtn = document.getElementById('resendForgotOtpBtn');
+    if (resendBtn) resendBtn.onclick = sendForgotOtpAction;
+
+    // Password strength checker for reset password
+    const passInput = document.getElementById('resetPass');
+    const checkPasswordStrength = (val) => {
+        const hasLength = val.length >= 8;
+        const hasLetters = /[a-zA-Z]/.test(val);
+        const hasNumbers = /[0-9]/.test(val);
+        const hasSymbols = /[^a-zA-Z0-9]/.test(val);
+
+        const updateRule = (elemId, passed, label) => {
+            const el = document.getElementById(elemId);
+            if (!el) return;
+            if (passed) {
+                el.className = 'col-6 text-success fw-medium';
+                el.innerHTML = `<i class="fa-solid fa-circle-check text-success me-1"></i> ${label}`;
+            } else {
+                el.className = 'col-6 text-muted';
+                el.innerHTML = `<i class="fa-regular fa-circle text-muted me-1"></i> ${label}`;
+            }
+        };
+
+        updateRule('resetRuleLength', hasLength, t('passwordReqLength'));
+        updateRule('resetRuleLetters', hasLetters, t('passwordReqLetters'));
+        updateRule('resetRuleNumbers', hasNumbers, t('passwordReqNumbers'));
+        updateRule('resetRuleSymbols', hasSymbols, t('passwordReqSymbols'));
+
+        let score = 0;
+        if (hasLength) score++;
+        if (hasLetters) score++;
+        if (hasNumbers) score++;
+        if (hasSymbols) score++;
+
+        const bar = document.getElementById('resetStrengthBar');
+        const label = document.getElementById('resetStrengthLabel');
+        if (!val) {
+            if (bar) { bar.style.width = '0%'; bar.className = 'progress-bar bg-danger'; }
+            if (label) { label.textContent = 'Password Strength: —'; label.className = 'small fw-semibold text-muted'; }
+        } else if (score <= 1) {
+            if (bar) { bar.style.width = '25%'; bar.className = 'progress-bar bg-danger'; }
+            if (label) { label.textContent = 'Password Strength: Weak'; label.className = 'small fw-semibold text-danger'; }
+        } else if (score === 2) {
+            if (bar) { bar.style.width = '50%'; bar.className = 'progress-bar bg-warning'; }
+            if (label) { label.textContent = 'Password Strength: Fair'; label.className = 'small fw-semibold text-warning'; }
+        } else if (score === 3) {
+            if (bar) { bar.style.width = '75%'; bar.className = 'progress-bar bg-info'; }
+            if (label) { label.textContent = 'Password Strength: Good'; label.className = 'small fw-semibold text-info'; }
+        } else {
+            if (bar) { bar.style.width = '100%'; bar.className = 'progress-bar bg-success'; }
+            if (label) { label.textContent = 'Password Strength: Strong & Secure ✓'; label.className = 'small fw-semibold text-success'; }
+        }
+
+        return (hasLength && hasLetters && hasNumbers && hasSymbols);
+    };
+
+    if (passInput) {
+        passInput.oninput = () => {
+            checkPasswordStrength(passInput.value);
+            const alertEl = document.getElementById('resetPassAlert');
+            if (alertEl) alertEl.innerHTML = '';
+        };
+    }
+
+    // Toggle Show / Hide Password
+    const togglePassBtn = document.getElementById('toggleResetPassBtn');
+    if (togglePassBtn) {
+        togglePassBtn.onclick = () => {
+            const isPass = passInput.type === 'password';
+            passInput.type = isPass ? 'text' : 'password';
+            const eye = document.getElementById('toggleResetEyeIcon');
+            if (eye) eye.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+        };
+    }
+
+    // Suggest Strong Password Generator
+    const suggestPassBtn = document.getElementById('suggestResetPassBtn');
+    if (suggestPassBtn) {
+        suggestPassBtn.onclick = () => {
+            const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+            const lower = 'abcdefghijkmnopqrstuvwxyz';
+            const numbers = '23456789';
+            const symbols = '!@#$%^&*_-+=';
+
+            let generated = '';
+            for (let i = 0; i < 4; i++) generated += upper[Math.floor(Math.random() * upper.length)];
+            for (let i = 0; i < 4; i++) generated += lower[Math.floor(Math.random() * lower.length)];
+            for (let i = 0; i < 3; i++) generated += numbers[Math.floor(Math.random() * numbers.length)];
+            for (let i = 0; i < 3; i++) generated += symbols[Math.floor(Math.random() * symbols.length)];
+
+            generated = generated.split('').sort(() => 0.5 - Math.random()).join('');
+
+            passInput.value = generated;
+            passInput.type = 'text';
+            const eye = document.getElementById('toggleResetEyeIcon');
+            if (eye) eye.className = 'fa-solid fa-eye-slash';
+
+            const confirmInput = document.getElementById('confirmResetPass');
+            if (confirmInput) confirmInput.value = generated;
+
+            checkPasswordStrength(generated);
+            const alertEl = document.getElementById('resetPassAlert');
+            if (alertEl) alertEl.innerHTML = '';
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(generated).then(() => {
+                    const copyAlert = document.getElementById('resetCopyAlert');
+                    if (copyAlert) {
+                        copyAlert.classList.remove('d-none');
+                        setTimeout(() => copyAlert.classList.add('d-none'), 3500);
+                    }
+                }).catch(() => {});
+            }
+            showToast('Strong password suggested and applied!');
+        };
+    }
+
+    // Form submission
+    const forgotForm = document.getElementById('forgotPassForm');
+    if (forgotForm) {
+        forgotForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('forgotEmail').value.trim();
+            const otpCode = document.getElementById('forgotOtpCode').value.trim();
+            const newPass = document.getElementById('resetPass').value;
+            const confirmPass = document.getElementById('confirmResetPass').value;
+
+            if (!otpDispatched) {
+                await sendForgotOtpAction();
+                return;
+            }
+
+            if (!otpCode || otpCode.length !== 6) {
+                showToast('Please enter the 6-digit OTP sent to your email.', 'warning');
+                document.getElementById('forgotOtpCode').focus();
+                return;
+            }
+
+            const isStrong = checkPasswordStrength(newPass);
+            if (!isStrong) {
+                document.getElementById('resetPassAlert').innerHTML = `
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                    Password must be at least 8 characters and include letters, numbers, and special symbols.
+                `;
+                document.getElementById('resetPass').focus();
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                document.getElementById('confirmPassAlert').innerHTML = `
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                    Passwords do not match. Please ensure both fields are identical.
+                `;
+                document.getElementById('confirmResetPass').focus();
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitResetBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Resetting Password...';
+
+            try {
+                const resp = await api.resetPassword(email, otpCode, newPass);
+                showToast(resp.message || 'Password reset successfully! Please sign in with your new password.', 'success');
+                window.location.hash = '#/login';
+            } catch (err) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-lock-open me-1"></i> ' + t('resetPassword');
+                showToast(err.message, 'danger');
+            }
+        };
+    }
+}
+
+// 4. Modern Enterprise Dashboard View with Real-time Timeframe Analytics & Filtering
 async function renderDashboard(container) {
     container.innerHTML = `<div class="p-5 text-center"><i class="fa-solid fa-spinner fa-spin fs-2 text-primary"></i><div class="mt-2 text-muted">Loading dashboard...</div></div>`;
 
     try {
-        const stats = await api.getDashboardStats();
+        const [stats, allDocsResp] = await Promise.all([
+            api.getDashboardStats().catch(() => ({})),
+            api.getDocuments('ALL').catch(() => [])
+        ]);
+
         const userName = state.user?.fullName ? state.user.fullName.split(' ')[0] : 'User';
         const formattedDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-        const totalDocs = Number.isInteger(stats?.totalDocuments) ? stats.totalDocuments : 0;
-        const pendingDocs = Number.isInteger(stats?.pendingSignatures) ? stats.pendingSignatures : 0;
-        const completedDocs = Number.isInteger(stats?.completedDocuments) ? stats.completedDocuments : 0;
-        const completionRate = totalDocs > 0 ? Math.round((completedDocs / totalDocs) * 100) : 0;
-        const recentDocs = Array.isArray(stats?.recentDocuments) ? stats.recentDocuments : [];
+        const allDocs = Array.isArray(allDocsResp) && allDocsResp.length > 0 
+            ? allDocsResp 
+            : (Array.isArray(stats?.recentDocuments) ? stats.recentDocuments : []);
+
+        let activeTimeframe = 'ALL'; // 'ALL', 'TODAY', '7DAYS', '30DAYS', 'THIS_MONTH', 'CUSTOM'
+        let activeStatusTab = 'ALL'; // 'ALL', 'REQUIRES_ME', 'COMPLETED'
+        let searchQuery = '';
+        let customStart = '';
+        let customEnd = '';
 
         container.innerHTML = `
             <div class="container-fluid px-lg-4 py-4">
@@ -905,7 +1259,7 @@ async function renderDashboard(container) {
                             </span>
                         </div>
                         <h2 class="fw-bold mb-1" style="letter-spacing: -0.5px;">${t('greeting')} ${userName}</h2>
-                        <p class="text-muted small mb-0">${formattedDate} &bull; ${pendingDocs} ${t('attentionSub')}</p>
+                        <p class="text-muted small mb-0" id="dashSubNote">${formattedDate} &bull; <span id="dashPendingSubText">Loading...</span></p>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-card text-muted border rounded-pill px-3 py-2 fw-semibold shadow-sm" style="font-size: 0.8rem;">
@@ -914,17 +1268,45 @@ async function renderDashboard(container) {
                     </div>
                 </div>
 
-                <!-- 3 Large Stat KPI Cards (Real Time Values) -->
+                <!-- Timeframe Filter Toolbar (Tracks Today, Last 7 Days, Last 30 Days, This Month, Custom Range) -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 px-3 mb-4 bg-card rounded-3 border shadow-sm">
+                    <div class="d-flex align-items-center gap-1 flex-wrap">
+                        <span class="small fw-bold text-muted text-uppercase me-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                            <i class="fa-solid fa-clock-rotate-left text-primary me-1"></i> Timeframe:
+                        </span>
+                        <button type="button" class="btn btn-sm btn-pill tf-btn btn-primary" data-tf="ALL">${t('timeframeAll')}</button>
+                        <button type="button" class="btn btn-sm btn-pill tf-btn btn-outline-secondary" data-tf="TODAY">${t('timeframeToday')}</button>
+                        <button type="button" class="btn btn-sm btn-pill tf-btn btn-outline-secondary" data-tf="7DAYS">${t('timeframeLast7Days')}</button>
+                        <button type="button" class="btn btn-sm btn-pill tf-btn btn-outline-secondary" data-tf="30DAYS">${t('timeframeLast30Days')}</button>
+                        <button type="button" class="btn btn-sm btn-pill tf-btn btn-outline-secondary" data-tf="THIS_MONTH">${t('timeframeThisMonth')}</button>
+                        <button type="button" class="btn btn-sm btn-pill tf-btn btn-outline-secondary" data-tf="CUSTOM">${t('timeframeCustom')}</button>
+                    </div>
+
+                    <!-- Custom Date Range Form (Hidden unless Custom is active) -->
+                    <div id="dashCustomRangeBox" class="d-none d-flex align-items-center gap-2 mt-2 mt-lg-0 flex-wrap">
+                        <div class="input-group input-group-sm" style="width: auto;">
+                            <span class="input-group-text bg-subtle small"><i class="fa-regular fa-calendar me-1"></i> From</span>
+                            <input type="date" id="dashStartDate" class="form-control form-control-sm">
+                        </div>
+                        <div class="input-group input-group-sm" style="width: auto;">
+                            <span class="input-group-text bg-subtle small"><i class="fa-regular fa-calendar me-1"></i> To</span>
+                            <input type="date" id="dashEndDate" class="form-control form-control-sm">
+                        </div>
+                        <button type="button" id="dashApplyCustomBtn" class="btn btn-sm btn-pill btn-pill-primary px-3">
+                            <i class="fa-solid fa-filter me-1"></i> Apply
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3 Large Stat KPI Cards (Dynamically Updated by Timeframe) -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
                         <div class="kpi-card">
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
                                     <div class="kpi-label">${t('totalDocs')}</div>
-                                    <div class="kpi-value">${totalDocs}</div>
-                                    <div class="small text-muted mt-1">
-                                        ${totalDocs > 0 ? `${totalDocs} total agreement${totalDocs === 1 ? '' : 's'}` : '0 uploaded'}
-                                    </div>
+                                    <div class="kpi-value" id="kpiTotalDocs">0</div>
+                                    <div class="small text-muted mt-1" id="kpiTotalDocsSub">0 uploaded</div>
                                 </div>
                                 <div class="kpi-icon-box icon-blue">
                                     <i class="fa-regular fa-folder-open"></i>
@@ -937,15 +1319,9 @@ async function renderDashboard(container) {
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
                                     <div class="kpi-label">${t('pendingDocs')}</div>
-                                    <div class="kpi-value ${pendingDocs > 0 ? 'text-warning' : ''}">${pendingDocs}</div>
-                                    <div class="mt-1">
-                                        ${pendingDocs > 0 ? `
-                                            <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small fw-bold">
-                                                ${t('actionNeeded')}
-                                            </span>
-                                        ` : `
-                                            <span class="small text-muted">All up to date</span>
-                                        `}
+                                    <div class="kpi-value text-warning" id="kpiPendingDocs">0</div>
+                                    <div class="mt-1" id="kpiPendingDocsSub">
+                                        <span class="small text-muted">All up to date</span>
                                     </div>
                                 </div>
                                 <div class="kpi-icon-box icon-orange">
@@ -959,9 +1335,9 @@ async function renderDashboard(container) {
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
                                     <div class="kpi-label">${t('completedDocs')}</div>
-                                    <div class="kpi-value text-success">${completedDocs}</div>
-                                    <div class="small text-muted mt-1">
-                                        ${completionRate}% completed
+                                    <div class="kpi-value text-success" id="kpiCompletedDocs">0</div>
+                                    <div class="small text-muted mt-1" id="kpiCompletedDocsSub">
+                                        0% completed
                                     </div>
                                 </div>
                                 <div class="kpi-icon-box icon-green">
@@ -984,6 +1360,9 @@ async function renderDashboard(container) {
                             <button class="filter-pill" id="tabRequiresMe">${t('filterRequiresMe')}</button>
                             <button class="filter-pill" id="tabCompleted">${t('filterCompleted')}</button>
                         </div>
+                        <a href="#/reports" class="btn btn-pill btn-pill-outline shadow-sm" title="Export Reports">
+                            <i class="fa-solid fa-file-csv text-success me-1"></i> ${t('reports')}
+                        </a>
                         <a href="#/upload" class="btn btn-pill btn-pill-primary shadow-sm">
                             <i class="fa-solid fa-plus me-1"></i> ${t('uploadAndSign')}
                         </a>
@@ -1003,67 +1382,12 @@ async function renderDashboard(container) {
                                 </tr>
                             </thead>
                             <tbody id="dashTableBody">
-                                ${recentDocs.length > 0 ? recentDocs.map((d, idx) => `
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <div class="file-thumb-icon">
-                                                    <i class="fa-regular fa-file-pdf"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <a href="#/documents/${d.id}" class="fw-bold text-decoration-none text-main">${d.title}</a>
-                                                        ${d.status === 'SENT' || d.status === 'IN_PROGRESS' ? `<span class="badge bg-danger-subtle text-danger rounded-pill small" style="font-size: 0.68rem;">Pending Signature</span>` : ''}
-                                                    </div>
-                                                    <div class="small text-muted mt-1" style="font-size: 0.76rem;">
-                                                        Ref: #SE-${(d.id || '').substring(0, 5).toUpperCase()} &bull; ${d.pages || 1} pgs &bull; ${d.fileName || d.title}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span class="status-pill status-${(d.status || 'draft').toLowerCase()}">
-                                                <span class="status-dot"></span> ${d.status === 'COMPLETED' ? 'Completed & Sealed' : (d.status === 'SENT' || d.status === 'IN_PROGRESS' ? 'Pending Signature' : 'Draft')}
-                                            </span>
-                                        </td>
-                                        <td class="small text-muted">
-                                            ${d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently'}
-                                        </td>
-                                        <td class="text-end">
-                                            <div class="d-inline-flex align-items-center gap-1">
-                                                ${d.status !== 'COMPLETED' ? `
-                                                    <a href="#/send?documentId=${d.id}" class="btn btn-pill btn-pill-primary btn-sm px-3">
-                                                        <i class="fa-solid fa-pen-nib me-1"></i> ${t('signNow')}
-                                                    </a>
-                                                    <a href="#/documents/${d.id}" class="btn btn-pill btn-pill-outline btn-sm px-2" title="${t('remind')}">
-                                                        <i class="fa-regular fa-bell"></i>
-                                                    </a>
-                                                ` : `
-                                                    <button type="button" onclick="window.downloadDoc('${d.id}', true, 'SEALED_${d.title.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf')" class="btn btn-pill btn-pill-outline btn-sm px-3">
-                                                        <i class="fa-solid fa-download me-1"></i> ${t('download')}
-                                                    </button>
-                                                `}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                `).join('') : `
-                                    <tr>
-                                        <td colspan="4" class="text-center py-5 text-muted">
-                                            <div class="mb-3"><i class="fa-regular fa-folder-open fs-1 text-secondary opacity-50"></i></div>
-                                            <h6 class="fw-semibold text-main">No documents uploaded yet</h6>
-                                            <p class="small text-muted mb-3">Upload your first agreement or contract to send for signature.</p>
-                                            <a href="#/upload" class="btn btn-pill btn-pill-primary btn-sm px-4">
-                                                <i class="fa-solid fa-cloud-arrow-up me-1"></i> Upload Document
-                                            </a>
-                                        </td>
-                                    </tr>
-                                `}
                             </tbody>
                         </table>
                     </div>
                     <!-- Table Footer Pagination bar -->
-                    <div class="p-3 bg-card border-top d-flex flex-wrap justify-content-between align-items-center text-muted small">
-                        <div>Showing ${recentDocs.length} of ${totalDocs} agreement${totalDocs === 1 ? '' : 's'}</div>
+                    <div class="p-3 bg-card border-top d-flex flex-wrap justify-content-between align-items-center text-muted small" id="dashTableFooter">
+                        <div id="dashCountText">Showing 0 agreements</div>
                         <a href="#/documents" class="text-primary fw-semibold text-decoration-none">
                             ${t('viewVaultLink')}
                         </a>
@@ -1071,6 +1395,238 @@ async function renderDashboard(container) {
                 </div>
             </div>
         `;
+
+        // Check date condition for timeframe
+        const matchesTimeframe = (doc) => {
+            if (activeTimeframe === 'ALL') return true;
+            const docDate = doc.createdAt ? new Date(doc.createdAt) : null;
+            if (!docDate || isNaN(docDate.getTime())) return true; // Default include if timestamp missing
+
+            const now = new Date();
+            const docTs = docDate.getTime();
+
+            if (activeTimeframe === 'TODAY') {
+                const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                return docTs >= startOfToday;
+            } else if (activeTimeframe === '7DAYS') {
+                const sevenDaysAgo = now.getTime() - (7 * 24 * 60 * 60 * 1000);
+                return docTs >= sevenDaysAgo;
+            } else if (activeTimeframe === '30DAYS') {
+                const thirtyDaysAgo = now.getTime() - (30 * 24 * 60 * 60 * 1000);
+                return docTs >= thirtyDaysAgo;
+            } else if (activeTimeframe === 'THIS_MONTH') {
+                const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+                return docTs >= startOfMonth;
+            } else if (activeTimeframe === 'CUSTOM') {
+                if (customStart) {
+                    const startTs = new Date(customStart + 'T00:00:00').getTime();
+                    if (docTs < startTs) return false;
+                }
+                if (customEnd) {
+                    const endTs = new Date(customEnd + 'T23:59:59').getTime();
+                    if (docTs > endTs) return false;
+                }
+                return true;
+            }
+            return true;
+        };
+
+        // Render Dashboard state
+        const updateDashboardView = () => {
+            // 1. Filter by timeframe
+            const timeframeDocs = allDocs.filter(matchesTimeframe);
+
+            // 2. Compute dynamic KPIs for this timeframe
+            const totalDocsCount = timeframeDocs.length;
+            const pendingDocsCount = timeframeDocs.filter(d => d.status === 'SENT' || d.status === 'IN_PROGRESS' || d.status === 'PENDING').length;
+            const completedDocsCount = timeframeDocs.filter(d => d.status === 'COMPLETED').length;
+            const completionRate = totalDocsCount > 0 ? Math.round((completedDocsCount / totalDocsCount) * 100) : 0;
+
+            // Update KPI DOM
+            const kpiTotalEl = document.getElementById('kpiTotalDocs');
+            const kpiTotalSubEl = document.getElementById('kpiTotalDocsSub');
+            const kpiPendingEl = document.getElementById('kpiPendingDocs');
+            const kpiPendingSubEl = document.getElementById('kpiPendingDocsSub');
+            const kpiCompletedEl = document.getElementById('kpiCompletedDocs');
+            const kpiCompletedSubEl = document.getElementById('kpiCompletedDocsSub');
+            const dashPendingSubText = document.getElementById('dashPendingSubText');
+
+            if (kpiTotalEl) kpiTotalEl.textContent = totalDocsCount;
+            if (kpiTotalSubEl) kpiTotalSubEl.textContent = `${totalDocsCount} total agreement${totalDocsCount === 1 ? '' : 's'}`;
+            if (kpiPendingEl) {
+                kpiPendingEl.textContent = pendingDocsCount;
+                kpiPendingEl.className = `kpi-value ${pendingDocsCount > 0 ? 'text-warning' : ''}`;
+            }
+            if (kpiPendingSubEl) {
+                kpiPendingSubEl.innerHTML = pendingDocsCount > 0 
+                    ? `<span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small fw-bold">${t('actionNeeded')}</span>` 
+                    : `<span class="small text-muted">All up to date</span>`;
+            }
+            if (kpiCompletedEl) kpiCompletedEl.textContent = completedDocsCount;
+            if (kpiCompletedSubEl) kpiCompletedSubEl.textContent = `${completionRate}% completed`;
+
+            let tfLabel = t('timeframeAll');
+            if (activeTimeframe === 'TODAY') tfLabel = t('timeframeToday');
+            else if (activeTimeframe === '7DAYS') tfLabel = t('timeframeLast7Days');
+            else if (activeTimeframe === '30DAYS') tfLabel = t('timeframeLast30Days');
+            else if (activeTimeframe === 'THIS_MONTH') tfLabel = t('timeframeThisMonth');
+            else if (activeTimeframe === 'CUSTOM') tfLabel = `${customStart || 'Start'} to ${customEnd || 'Now'}`;
+
+            if (dashPendingSubText) {
+                dashPendingSubText.innerHTML = `<strong>${pendingDocsCount}</strong> ${t('attentionSub')} <span class="badge bg-primary-subtle text-primary ms-1">${tfLabel}</span>`;
+            }
+
+            // 3. Filter by sub-tab and search query for table display
+            let displayDocs = timeframeDocs;
+            if (activeStatusTab === 'REQUIRES_ME') {
+                displayDocs = displayDocs.filter(d => d.status === 'SENT' || d.status === 'IN_PROGRESS' || d.status === 'PENDING');
+            } else if (activeStatusTab === 'COMPLETED') {
+                displayDocs = displayDocs.filter(d => d.status === 'COMPLETED');
+            }
+
+            if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase().trim();
+                displayDocs = displayDocs.filter(d => 
+                    (d.title && d.title.toLowerCase().includes(q)) ||
+                    (d.fileName && d.fileName.toLowerCase().includes(q)) ||
+                    (d.id && d.id.toLowerCase().includes(q))
+                );
+            }
+
+            // Update Table Body
+            const tbody = document.getElementById('dashTableBody');
+            const countText = document.getElementById('dashCountText');
+            if (countText) {
+                countText.textContent = `Showing ${displayDocs.length} of ${totalDocsCount} agreement${totalDocsCount === 1 ? '' : 's'} (${tfLabel})`;
+            }
+
+            if (!tbody) return;
+            if (displayDocs.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <div class="mb-3"><i class="fa-regular fa-folder-open fs-1 text-secondary opacity-50"></i></div>
+                            <h6 class="fw-semibold text-main">No documents found for this timeframe</h6>
+                            <p class="small text-muted mb-3">No agreements matched "${tfLabel}" with the selected filters.</p>
+                            <a href="#/upload" class="btn btn-pill btn-pill-primary btn-sm px-4">
+                                <i class="fa-solid fa-cloud-arrow-up me-1"></i> Upload Document
+                            </a>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = displayDocs.map(d => `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="file-thumb-icon">
+                                <i class="fa-regular fa-file-pdf"></i>
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <a href="#/documents/${d.id}" class="fw-bold text-decoration-none text-main">${d.title || d.fileName || 'Untitled Document'}</a>
+                                    ${d.status === 'SENT' || d.status === 'IN_PROGRESS' ? `<span class="badge bg-danger-subtle text-danger rounded-pill small" style="font-size: 0.68rem;">Pending Signature</span>` : ''}
+                                </div>
+                                <div class="small text-muted mt-1" style="font-size: 0.76rem;">
+                                    Ref: #SE-${(d.id || '').substring(0, 5).toUpperCase()} &bull; ${d.pages || d.pageCount || 1} pgs &bull; ${d.fileName || d.title || 'PDF'}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="status-pill status-${(d.status || 'draft').toLowerCase()}">
+                            <span class="status-dot"></span> ${d.status === 'COMPLETED' ? 'Completed & Sealed' : (d.status === 'SENT' || d.status === 'IN_PROGRESS' ? 'Pending Signature' : 'Draft')}
+                        </span>
+                    </td>
+                    <td class="small text-muted">
+                        ${d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently'}
+                    </td>
+                    <td class="text-end">
+                        <div class="d-inline-flex align-items-center gap-1">
+                            ${d.status !== 'COMPLETED' ? `
+                                <a href="#/send?documentId=${d.id}" class="btn btn-pill btn-pill-primary btn-sm px-3">
+                                    <i class="fa-solid fa-pen-nib me-1"></i> ${t('signNow')}
+                                </a>
+                                <a href="#/documents/${d.id}" class="btn btn-pill btn-pill-outline btn-sm px-2" title="${t('remind')}">
+                                    <i class="fa-regular fa-bell"></i>
+                                </a>
+                            ` : `
+                                <button type="button" onclick="window.downloadDoc('${d.id}', true, 'SEALED_${(d.title || 'document').replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf')" class="btn btn-pill btn-pill-outline btn-sm px-3">
+                                    <i class="fa-solid fa-download me-1"></i> ${t('download')}
+                                </button>
+                            `}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        };
+
+        // Bind Timeframe Buttons
+        document.querySelectorAll('.tf-btn').forEach(btn => {
+            btn.onclick = () => {
+                const tf = btn.dataset.tf;
+                activeTimeframe = tf;
+                document.querySelectorAll('.tf-btn').forEach(b => {
+                    b.className = (b === btn) ? 'btn btn-sm btn-pill tf-btn btn-primary' : 'btn btn-sm btn-pill tf-btn btn-outline-secondary';
+                });
+
+                const customBox = document.getElementById('dashCustomRangeBox');
+                if (customBox) {
+                    if (tf === 'CUSTOM') {
+                        customBox.classList.remove('d-none');
+                    } else {
+                        customBox.classList.add('d-none');
+                    }
+                }
+                updateDashboardView();
+            };
+        });
+
+        // Bind Custom Date Apply
+        const applyCustomBtn = document.getElementById('dashApplyCustomBtn');
+        if (applyCustomBtn) {
+            applyCustomBtn.onclick = () => {
+                customStart = document.getElementById('dashStartDate').value;
+                customEnd = document.getElementById('dashEndDate').value;
+                if (!customStart && !customEnd) {
+                    showToast('Please select at least a start date or end date.', 'warning');
+                    return;
+                }
+                updateDashboardView();
+                showToast('Custom timeframe filter applied!');
+            };
+        }
+
+        // Bind Search Input
+        const searchInput = document.getElementById('dashSearchInput');
+        if (searchInput) {
+            searchInput.oninput = (e) => {
+                searchQuery = e.target.value;
+                updateDashboardView();
+            };
+        }
+
+        // Bind Status Sub-Tabs
+        const tabAll = document.getElementById('tabAll');
+        const tabReq = document.getElementById('tabRequiresMe');
+        const tabComp = document.getElementById('tabCompleted');
+
+        const setTab = (activeBtn, tabName) => {
+            activeStatusTab = tabName;
+            [tabAll, tabReq, tabComp].forEach(btn => {
+                if (btn) btn.className = (btn === activeBtn) ? 'filter-pill active' : 'filter-pill';
+            });
+            updateDashboardView();
+        };
+
+        if (tabAll) tabAll.onclick = () => setTab(tabAll, 'ALL');
+        if (tabReq) tabReq.onclick = () => setTab(tabReq, 'REQUIRES_ME');
+        if (tabComp) tabComp.onclick = () => setTab(tabComp, 'COMPLETED');
+
+        // Initial Paint
+        updateDashboardView();
     } catch (err) {
         showToast(err.message, 'danger');
     }
@@ -1297,6 +1853,415 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                 </div>
             </div>
         `;
+    } catch (err) {
+        showToast(err.message, 'danger');
+    }
+}
+
+// 5.1 Reports Generation & CSV Export View
+async function renderReports(container) {
+    container.innerHTML = `<div class="p-5 text-center"><i class="fa-solid fa-spinner fa-spin fs-2 text-primary"></i><div class="mt-2 text-muted">Loading report analytics...</div></div>`;
+
+    try {
+        const docs = await api.getDocuments('ALL');
+        const allDocs = Array.isArray(docs) ? docs : [];
+
+        let activeTimeframe = 'ALL';
+        let activeStatus = 'ALL';
+        let searchQuery = '';
+        let customStart = '';
+        let customEnd = '';
+
+        container.innerHTML = `
+            <div class="container-fluid px-lg-4 py-4">
+                <!-- Header with Title & Export Action -->
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 fw-bold" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                                <i class="fa-solid fa-file-csv text-primary me-1"></i> ${t('reportGeneration')}
+                            </span>
+                        </div>
+                        <h3 class="fw-bold mb-1" style="letter-spacing: -0.5px;">${t('reportGeneration')}</h3>
+                        <p class="text-muted small mb-0">Generate and export filtered document datasets with signature status, audit metadata, and cryptographic hashes.</p>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" id="exportReportCsvBtn" class="btn btn-pill btn-pill-primary shadow-sm px-4">
+                            <i class="fa-solid fa-file-arrow-down me-2"></i> ${t('exportCsvReport')}
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Timeframe & Status Filter Panel -->
+                <div class="card border mb-4 shadow-sm" style="background: var(--bg-card); border-radius: var(--radius-md);">
+                    <div class="card-body p-3">
+                        <div class="row g-3 align-items-center">
+                            <!-- Timeframe Pills -->
+                            <div class="col-lg-7">
+                                <div class="d-flex align-items-center gap-1 flex-wrap">
+                                    <span class="small fw-bold text-muted text-uppercase me-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                                        <i class="fa-solid fa-clock-rotate-left text-primary me-1"></i> Timeframe:
+                                    </span>
+                                    <button type="button" class="btn btn-sm btn-pill report-tf-btn btn-primary" data-tf="ALL">${t('timeframeAll')}</button>
+                                    <button type="button" class="btn btn-sm btn-pill report-tf-btn btn-outline-secondary" data-tf="TODAY">${t('timeframeToday')}</button>
+                                    <button type="button" class="btn btn-sm btn-pill report-tf-btn btn-outline-secondary" data-tf="7DAYS">${t('timeframeLast7Days')}</button>
+                                    <button type="button" class="btn btn-sm btn-pill report-tf-btn btn-outline-secondary" data-tf="30DAYS">${t('timeframeLast30Days')}</button>
+                                    <button type="button" class="btn btn-sm btn-pill report-tf-btn btn-outline-secondary" data-tf="THIS_MONTH">${t('timeframeThisMonth')}</button>
+                                    <button type="button" class="btn btn-sm btn-pill report-tf-btn btn-outline-secondary" data-tf="CUSTOM">${t('timeframeCustom')}</button>
+                                </div>
+
+                                <!-- Custom Date Range Inputs -->
+                                <div id="reportCustomRangeBox" class="d-none d-flex align-items-center gap-2 mt-2 flex-wrap">
+                                    <div class="input-group input-group-sm" style="width: auto;">
+                                        <span class="input-group-text bg-subtle small"><i class="fa-regular fa-calendar me-1"></i> From</span>
+                                        <input type="date" id="reportStartDate" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="input-group input-group-sm" style="width: auto;">
+                                        <span class="input-group-text bg-subtle small"><i class="fa-regular fa-calendar me-1"></i> To</span>
+                                        <input type="date" id="reportEndDate" class="form-control form-control-sm">
+                                    </div>
+                                    <button type="button" id="reportApplyCustomBtn" class="btn btn-sm btn-pill btn-pill-primary px-3">
+                                        <i class="fa-solid fa-filter me-1"></i> Apply
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Status Dropdown & Search -->
+                            <div class="col-lg-5">
+                                <div class="d-flex align-items-center gap-2">
+                                    <select class="form-select form-select-sm" id="reportStatusSelect" style="max-width: 170px;">
+                                        <option value="ALL">All Statuses</option>
+                                        <option value="COMPLETED">Completed & Sealed</option>
+                                        <option value="PENDING">Awaiting Signature</option>
+                                        <option value="DRAFT">Drafts</option>
+                                    </select>
+                                    <div class="position-relative flex-grow-1">
+                                        <i class="fa-solid fa-magnifying-glass search-icon-wrap" style="top: 50%; transform: translateY(-50%); font-size: 0.8rem;"></i>
+                                        <input type="text" id="reportSearchInput" class="search-input-pill py-1 ps-4" style="height: 34px; font-size: 0.85rem;" placeholder="Search in report...">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4 Report Summary Metric Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card p-3">
+                            <div class="kpi-label">TOTAL IN REPORT</div>
+                            <div class="kpi-value fs-3" id="repMetricTotal">0</div>
+                            <div class="small text-muted mt-1" id="repMetricTotalSub">0 records</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card p-3">
+                            <div class="kpi-label">AWAITING SIGNATURE</div>
+                            <div class="kpi-value fs-3 text-warning" id="repMetricPending">0</div>
+                            <div class="small text-muted mt-1">Pending action</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card p-3">
+                            <div class="kpi-label">COMPLETED & SEALED</div>
+                            <div class="kpi-value fs-3 text-success" id="repMetricCompleted">0</div>
+                            <div class="small text-muted mt-1" id="repMetricCompletedSub">0% sealed</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <div class="kpi-card p-3">
+                            <div class="kpi-label">TOTAL PAGES</div>
+                            <div class="kpi-value fs-3 text-primary" id="repMetricPages">0</div>
+                            <div class="small text-muted mt-1">Processed pages</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Report Preview Table -->
+                <div class="table-card mb-4">
+                    <div class="card-header bg-card py-3 px-3 border-bottom d-flex justify-content-between align-items-center">
+                        <span class="fw-bold small text-uppercase" style="letter-spacing: 0.5px;">
+                            <i class="fa-solid fa-table-list me-1 text-primary"></i> Data Report Preview
+                        </span>
+                        <span class="badge bg-subtle text-muted" id="repBadgeCount">0 documents ready for export</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table-custom">
+                            <thead>
+                                <tr>
+                                    <th>DOCUMENT ID & NAME</th>
+                                    <th>STATUS</th>
+                                    <th>SIGNERS / PARTIES</th>
+                                    <th>CREATED DATE</th>
+                                    <th>COMPLETED DATE</th>
+                                    <th>PAGES & SIZE</th>
+                                    <th class="text-end">HASH (SHA-256)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-3 bg-card border-top d-flex justify-content-between align-items-center text-muted small" id="reportFooter">
+                        <div id="reportFooterText">Showing 0 rows</div>
+                        <div>Format: <strong>RFC 4180 CSV (UTF-8)</strong></div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Filter and Render engine for reports
+        const getFilteredReportDocs = () => {
+            const now = new Date();
+
+            return allDocs.filter(d => {
+                // 1. Timeframe
+                const docDate = d.createdAt ? new Date(d.createdAt) : null;
+                const docTs = docDate && !isNaN(docDate.getTime()) ? docDate.getTime() : 0;
+
+                if (activeTimeframe === 'TODAY') {
+                    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                    if (docTs < startOfToday) return false;
+                } else if (activeTimeframe === '7DAYS') {
+                    const sevenDaysAgo = now.getTime() - (7 * 24 * 60 * 60 * 1000);
+                    if (docTs < sevenDaysAgo) return false;
+                } else if (activeTimeframe === '30DAYS') {
+                    const thirtyDaysAgo = now.getTime() - (30 * 24 * 60 * 60 * 1000);
+                    if (docTs < thirtyDaysAgo) return false;
+                } else if (activeTimeframe === 'THIS_MONTH') {
+                    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+                    if (docTs < startOfMonth) return false;
+                } else if (activeTimeframe === 'CUSTOM') {
+                    if (customStart) {
+                        const startTs = new Date(customStart + 'T00:00:00').getTime();
+                        if (docTs < startTs) return false;
+                    }
+                    if (customEnd) {
+                        const endTs = new Date(customEnd + 'T23:59:59').getTime();
+                        if (docTs > endTs) return false;
+                    }
+                }
+
+                // 2. Status
+                if (activeStatus === 'COMPLETED' && d.status !== 'COMPLETED') return false;
+                if (activeStatus === 'PENDING' && (d.status !== 'SENT' && d.status !== 'IN_PROGRESS' && d.status !== 'PENDING')) return false;
+                if (activeStatus === 'DRAFT' && d.status !== 'DRAFT') return false;
+
+                // 3. Search query
+                if (searchQuery.trim()) {
+                    const q = searchQuery.toLowerCase().trim();
+                    const titleMatch = d.title && d.title.toLowerCase().includes(q);
+                    const idMatch = d.id && d.id.toLowerCase().includes(q);
+                    const fileMatch = d.fileName && d.fileName.toLowerCase().includes(q);
+                    if (!titleMatch && !idMatch && !fileMatch) return false;
+                }
+
+                return true;
+            });
+        };
+
+        const updateReportView = () => {
+            const filtered = getFilteredReportDocs();
+
+            // Compute KPIs
+            const total = filtered.length;
+            const pending = filtered.filter(d => d.status === 'SENT' || d.status === 'IN_PROGRESS' || d.status === 'PENDING').length;
+            const completed = filtered.filter(d => d.status === 'COMPLETED').length;
+            const totalPages = filtered.reduce((acc, d) => acc + (d.pages || d.pageCount || 1), 0);
+            const compRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            const repTotalEl = document.getElementById('repMetricTotal');
+            const repPendingEl = document.getElementById('repMetricPending');
+            const repCompEl = document.getElementById('repMetricCompleted');
+            const repCompSubEl = document.getElementById('repMetricCompletedSub');
+            const repPagesEl = document.getElementById('repMetricPages');
+            const repBadge = document.getElementById('repBadgeCount');
+            const repFooter = document.getElementById('reportFooterText');
+
+            if (repTotalEl) repTotalEl.textContent = total;
+            if (repPendingEl) repPendingEl.textContent = pending;
+            if (repCompEl) repCompEl.textContent = completed;
+            if (repCompSubEl) repCompSubEl.textContent = `${compRate}% sealed`;
+            if (repPagesEl) repPagesEl.textContent = totalPages;
+            if (repBadge) repBadge.textContent = `${total} document${total === 1 ? '' : 's'} ready for export`;
+            if (repFooter) repFooter.textContent = `Showing ${total} document record${total === 1 ? '' : 's'}`;
+
+            const tbody = document.getElementById('reportTableBody');
+            if (!tbody) return;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <div class="mb-3"><i class="fa-regular fa-file-excel fs-1 opacity-50"></i></div>
+                            <h6 class="fw-semibold text-main">No records match the current report criteria</h6>
+                            <p class="small text-muted mb-0">Try adjusting your timeframe, status filter, or search keywords.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(d => {
+                const statusPill = d.status === 'COMPLETED' 
+                    ? `<span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1"><i class="fa-solid fa-circle-check me-1"></i> Completed & Sealed</span>`
+                    : (d.status === 'SENT' || d.status === 'IN_PROGRESS' 
+                        ? `<span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2 py-1"><i class="fa-solid fa-clock me-1"></i> Awaiting Signature</span>`
+                        : `<span class="badge bg-secondary-subtle text-secondary border rounded-pill px-2 py-1">Draft</span>`);
+
+                const createdStr = d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const completedStr = d.completedAt ? new Date(d.completedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : (d.status === 'COMPLETED' ? 'Sealed' : '—');
+                const signers = (d.signers && Array.isArray(d.signers)) 
+                    ? d.signers.map(s => s.name || s.email).join(', ') 
+                    : (d.uploadedBy?.fullName || state.user?.fullName || 'Self');
+                const hash = d.finalHash || d.originalHash || 'Pending';
+                const shortHash = hash.length > 16 ? hash.substring(0, 8) + '...' + hash.substring(hash.length - 6) : hash;
+                const sizeKb = d.fileSize ? Math.round(d.fileSize / 1024) + ' KB' : '—';
+
+                return `
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-main">${d.title || d.fileName || 'Untitled Document'}</div>
+                            <div class="small text-muted font-monospace" style="font-size: 0.72rem;">#SE-${(d.id || '').substring(0, 8)}</div>
+                        </td>
+                        <td>${statusPill}</td>
+                        <td class="small text-muted" style="max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                            ${signers}
+                        </td>
+                        <td class="small text-muted">${createdStr}</td>
+                        <td class="small text-muted">${completedStr}</td>
+                        <td class="small text-muted">
+                            ${d.pages || d.pageCount || 1} pgs &bull; ${sizeKb}
+                        </td>
+                        <td class="text-end">
+                            <span class="font-monospace small text-primary" title="${hash}">${shortHash}</span>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        };
+
+        // CSV Export Engine (RFC 4180 with UTF-8 BOM)
+        const exportCsvAction = () => {
+            const recordsToExport = getFilteredReportDocs();
+            if (recordsToExport.length === 0) {
+                showToast('No records available to export with current filters.', 'warning');
+                return;
+            }
+
+            const headers = [
+                'Document ID',
+                'Document Title',
+                'Status',
+                'Signers / Parties',
+                'Created Date',
+                'Completed Date',
+                'Pages',
+                'File Size (KB)',
+                'SHA-256 Hash'
+            ];
+
+            const escapeCsv = (val) => {
+                if (val === null || val === undefined) return '""';
+                const str = String(val).replace(/"/g, '""');
+                return `"${str}"`;
+            };
+
+            const rows = recordsToExport.map(d => {
+                const statusText = d.status === 'COMPLETED' ? 'Completed & Sealed' : (d.status === 'SENT' || d.status === 'IN_PROGRESS' ? 'Awaiting Signature' : (d.status === 'DRAFT' ? 'Draft' : d.status));
+                const createdStr = d.createdAt ? new Date(d.createdAt).toISOString() : '';
+                const completedStr = d.completedAt ? new Date(d.completedAt).toISOString() : (d.status === 'COMPLETED' ? 'Sealed' : '');
+                const sizeKb = d.fileSize ? Math.round(d.fileSize / 1024) : 0;
+                const signers = (d.signers && Array.isArray(d.signers)) 
+                    ? d.signers.map(s => `${s.name || ''} <${s.email || ''}> [${s.status || ''}]`).join('; ')
+                    : (d.uploadedBy?.fullName || state.user?.fullName || 'Self');
+                const hash = d.finalHash || d.originalHash || 'N/A';
+
+                return [
+                    escapeCsv(d.id),
+                    escapeCsv(d.title || d.fileName || 'Untitled Document'),
+                    escapeCsv(statusText),
+                    escapeCsv(signers),
+                    escapeCsv(createdStr),
+                    escapeCsv(completedStr),
+                    escapeCsv(d.pages || d.pageCount || 1),
+                    escapeCsv(sizeKb),
+                    escapeCsv(hash)
+                ].join(',');
+            });
+
+            const csvContent = [headers.map(escapeCsv).join(','), ...rows].join('\r\n');
+            const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const filename = `SignEase_Report_${new Date().toISOString().slice(0, 10)}.csv`;
+
+            const blobUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
+
+            showToast(`Exported ${recordsToExport.length} document records to ${filename}!`, 'success');
+        };
+
+        // Event bindings
+        const exportBtn = document.getElementById('exportReportCsvBtn');
+        if (exportBtn) exportBtn.onclick = exportCsvAction;
+
+        document.querySelectorAll('.report-tf-btn').forEach(btn => {
+            btn.onclick = () => {
+                const tf = btn.dataset.tf;
+                activeTimeframe = tf;
+                document.querySelectorAll('.report-tf-btn').forEach(b => {
+                    b.className = (b === btn) ? 'btn btn-sm btn-pill report-tf-btn btn-primary' : 'btn btn-sm btn-pill report-tf-btn btn-outline-secondary';
+                });
+
+                const customBox = document.getElementById('reportCustomRangeBox');
+                if (customBox) {
+                    if (tf === 'CUSTOM') {
+                        customBox.classList.remove('d-none');
+                    } else {
+                        customBox.classList.add('d-none');
+                    }
+                }
+                updateReportView();
+            };
+        });
+
+        const reportApplyCustomBtn = document.getElementById('reportApplyCustomBtn');
+        if (reportApplyCustomBtn) {
+            reportApplyCustomBtn.onclick = () => {
+                customStart = document.getElementById('reportStartDate').value;
+                customEnd = document.getElementById('reportEndDate').value;
+                if (!customStart && !customEnd) {
+                    showToast('Please select at least a start date or end date.', 'warning');
+                    return;
+                }
+                updateReportView();
+                showToast('Custom report timeframe applied!');
+            };
+        }
+
+        const statusSelect = document.getElementById('reportStatusSelect');
+        if (statusSelect) {
+            statusSelect.onchange = (e) => {
+                activeStatus = e.target.value;
+                updateReportView();
+            };
+        }
+
+        const searchInput = document.getElementById('reportSearchInput');
+        if (searchInput) {
+            searchInput.oninput = (e) => {
+                searchQuery = e.target.value;
+                updateReportView();
+            };
+        }
+
+        // Initial render of report view
+        updateReportView();
     } catch (err) {
         showToast(err.message, 'danger');
     }

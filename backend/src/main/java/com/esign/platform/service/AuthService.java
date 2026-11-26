@@ -52,6 +52,81 @@ public class AuthService {
 
     private final Map<String, RegistrationOtpEntry> registrationOtpStore = new ConcurrentHashMap<>();
 
+    @Data
+    @AllArgsConstructor
+    public static class PasswordResetOtpEntry {
+        private String otp;
+        private LocalDateTime expiry;
+        private int attempts;
+        private boolean verified;
+    }
+
+    private final Map<String, PasswordResetOtpEntry> passwordResetOtpStore = new ConcurrentHashMap<>();
+
+    public String sendForgotPasswordOtp(String email) {
+        if (email == null || email.isBlank() || !email.contains("@")) {
+            throw new IllegalArgumentException("A valid email address is required");
+        }
+        String cleanEmail = email.trim().toLowerCase();
+
+        Optional<User> userOpt = userRepository.findByEmail(cleanEmail);
+        if (userOpt.isEmpty()) {
+            throw new IllegalArgumentException("No account registered with email: " + cleanEmail);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        PasswordResetOtpEntry existing = passwordResetOtpStore.get(cleanEmail);
+        if (existing != null && existing.getExpiry().isAfter(now) && !existing.isVerified()) {
+            if (existing.getExpiry().isAfter(now.plusMinutes(9).plusSeconds(15))) {
+                log.info("Duplicate password reset OTP request blocked for {} within cooldown. Reusing existing code.", cleanEmail);
+                return existing.getOtp();
+            }
+        }
+
+        int code = 100000 + secureRandom.nextInt(900000);
+        String otp = String.valueOf(code);
+
+        passwordResetOtpStore.put(cleanEmail, new PasswordResetOtpEntry(otp, now.plusMinutes(10), 0, false));
+        emailService.sendPasswordResetOtpCode(cleanEmail, otp);
+        return otp;
+    }
+
+    @Transactional
+    public void resetPasswordWithOtp(String email, String inputOtp, String newPassword) {
+        if (email == null || inputOtp == null || newPassword == null || newPassword.isBlank()) {
+            throw new IllegalArgumentException("Email, OTP code, and new password are required.");
+        }
+        String cleanEmail = email.trim().toLowerCase();
+
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new IllegalArgumentException("No account found with email: " + cleanEmail));
+
+        PasswordResetOtpEntry entry = passwordResetOtpStore.get(cleanEmail);
+        if (entry == null) {
+            throw new IllegalArgumentException("No password reset request found for this email. Please request a new OTP.");
+        }
+        if (entry.getExpiry().isBefore(LocalDateTime.now())) {
+            passwordResetOtpStore.remove(cleanEmail);
+            throw new IllegalArgumentException("Verification code has expired. Please request a new code.");
+        }
+        if (entry.getAttempts() >= 5) {
+            passwordResetOtpStore.remove(cleanEmail);
+            throw new IllegalArgumentException("Maximum verification attempts exceeded. Please request a new code.");
+        }
+
+        entry.setAttempts(entry.getAttempts() + 1);
+
+        if (!entry.getOtp().equalsIgnoreCase(inputOtp.trim())) {
+            throw new IllegalArgumentException("Invalid verification code. Please check your email and try again.");
+        }
+
+        // Successfully verified, update user password
+        passwordResetOtpStore.remove(cleanEmail);
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        log.info("Password successfully reset for user: {}", cleanEmail);
+    }
+
     public String sendRegistrationOtp(String email) {
         if (email == null || email.isBlank() || !email.contains("@")) {
             throw new IllegalArgumentException("A valid email address is required");

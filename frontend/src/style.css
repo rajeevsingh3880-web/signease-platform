@@ -195,6 +195,10 @@
     box-sizing: border-box;
 }
 
+html {
+    height: 100%;
+}
+
 body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     background-color: var(--bg-page);
@@ -204,6 +208,14 @@ body {
     flex-direction: column;
     transition: background-color 0.32s cubic-bezier(0.4, 0, 0.2, 1), color 0.32s cubic-bezier(0.4, 0, 0.2, 1);
     top: 0px !important;
+}
+
+#app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    flex: 1 0 auto;
+    width: 100%;
 }
 
 /* Smooth Transitions for Theme & Interactivity */

@@ -96,6 +96,20 @@ export const api = {
         });
     },
 
+    sendForgotPasswordOtp(email) {
+        return this.request('/auth/forgot-password-otp', {
+            method: 'POST',
+            body: JSON.stringify({ email })
+        });
+    },
+
+    resetPassword(email, otpCode, newPassword) {
+        return this.request('/auth/reset-password', {
+            method: 'POST',
+            body: JSON.stringify({ email, otpCode, newPassword })
+        });
+    },
+
     getMe() {
         return this.request('/auth/me');
     },
@@ -159,10 +173,11 @@ export const api = {
         }
 
         const blob = await res.blob();
-        const blobUrl = window.URL.createObjectURL(blob);
+        const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+        const blobUrl = window.URL.createObjectURL(pdfBlob);
         const link = document.createElement('a');
         link.href = blobUrl;
-        link.download = filename;
+        link.download = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
         document.body.appendChild(link);
         link.click();
         link.remove();

@@ -4,6 +4,7 @@ import com.esign.platform.dto.AuthResponse;
 import com.esign.platform.dto.EmailOtpDto;
 import com.esign.platform.dto.LoginRequest;
 import com.esign.platform.dto.RegisterRequest;
+import com.esign.platform.dto.ResetPasswordDto;
 import com.esign.platform.model.User;
 import com.esign.platform.service.AuthService;
 import jakarta.validation.Valid;
@@ -47,6 +48,32 @@ public class ApiAuthController {
         try {
             authService.verifyRegistrationOtp(dto.getEmail(), dto.getOtpCode());
             return ResponseEntity.ok(Map.of("success", true, "message", "Email verified successfully!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/forgot-password-otp")
+    public ResponseEntity<?> sendForgotPasswordOtp(@Valid @RequestBody EmailOtpDto dto) {
+        try {
+            String otp = authService.sendForgotPasswordOtp(dto.getEmail());
+            Map<String, Object> resp = new HashMap<>();
+            resp.put("success", true);
+            resp.put("message", "A 6-digit password reset OTP has been sent to your email address.");
+            if (exposeTestOtp) {
+                resp.put("testOtp", otp);
+            }
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordDto dto) {
+        try {
+            authService.resetPasswordWithOtp(dto.getEmail(), dto.getOtpCode(), dto.getNewPassword());
+            return ResponseEntity.ok(Map.of("success", true, "message", "Your password has been successfully reset! You can now log in with your new password."));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "error", e.getMessage()));
         }
