@@ -287,77 +287,44 @@ async function render() {
             </div>
             <div class="offcanvas-body d-flex flex-column justify-content-between p-3">
                 <div class="d-flex flex-column gap-1">
-                    <!-- User Profile / Sign In Pill (Clickable to Profile) -->
-                    ${state.user ? `
-                        <div class="p-2 mb-3 rounded-3 d-flex align-items-center gap-3 cursor-pointer" style="background: var(--bg-subtle); border: 1px solid var(--border-color); cursor: pointer;" onclick="window.navigateFromSidebar('#/profile')" title="${t('myProfile')}">
-                            <div class="user-avatar-circle" style="overflow:hidden; padding:0; flex-shrink:0;">
-                                ${userAvatar ? `<img src="${userAvatar}" alt="${userName}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : userInitials}
-                            </div>
-                            <div class="overflow-hidden">
-                                <div class="fw-bold text-truncate" style="font-size: 0.9rem;">${userName}</div>
-                                <div class="text-muted text-truncate" style="font-size: 0.75rem;">${userOrg} &bull; <span class="text-primary fw-medium">${t('profile')} &rarr;</span></div>
-                            </div>
-                        </div>
-                    ` : `
-                        <div class="mb-3">
-                            <a href="javascript:void(0)" onclick="window.navigateFromSidebar('#/login')" class="btn btn-pill-primary w-100 py-2 fw-semibold justify-content-center">
-                                <i class="fa-solid fa-right-to-bracket me-2"></i> ${t('signIn')}
-                            </a>
-                        </div>
-                    `}
-
-                    <div class="text-uppercase small fw-bold text-muted px-2 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Navigation / मेनू</div>
+                    <div class="text-uppercase small fw-bold text-muted px-2 mb-2" style="font-size: 0.7rem; letter-spacing: 0.5px;">Navigation</div>
                     <a class="sidebar-nav-link ${path === 'dashboard' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/dashboard')">
                         <i class="fa-solid fa-chart-pie me-2 text-primary"></i> ${t('dashboard')}
                     </a>
                     <a class="sidebar-nav-link ${path === 'documents' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/documents')">
                         <i class="fa-regular fa-folder me-2 text-primary"></i> ${t('documents')}
                     </a>
-                    <a class="sidebar-nav-link ${path === 'send' || path === 'upload' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/upload')">
-                        <i class="fa-solid fa-paper-plane me-2 text-primary"></i> ${t('send')}
-                    </a>
-                    <a class="sidebar-nav-link ${path === 'verify' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/verify')">
-                        <i class="fa-solid fa-shield-halved me-2 text-success"></i> ${t('verify')}
-                    </a>
-                    <a class="sidebar-nav-link ${path === 'profile' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/profile')">
-                        <i class="fa-solid fa-user-circle me-2 text-info"></i> ${t('profile')}
-                    </a>
                     ${state.user?.role === 'ADMIN' ? `
                         <a class="sidebar-nav-link text-danger ${path === 'admin' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/admin')">
                             <i class="fa-solid fa-shield me-2"></i> ${t('admin')}
                         </a>
                     ` : ''}
-
-                    <hr class="my-3" style="border-color: var(--border-color);">
-
-                    <div class="text-uppercase small fw-bold text-muted px-2 mb-1" style="font-size: 0.7rem; letter-spacing: 0.5px;">Actions / त्वरित कार्य</div>
-                    <a class="sidebar-nav-link" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/upload')">
-                        <i class="fa-solid fa-plus-circle me-2 text-primary"></i> ${t('newEnvelope')}
-                    </a>
-                    <a class="sidebar-nav-link" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/documents')">
-                        <i class="fa-solid fa-file-arrow-down me-2 text-info"></i> ${t('exportCsv')}
-                    </a>
                 </div>
 
-                <!-- Bottom Drawer Actions: Only Logout (Language & Dark Mode are solely in the Header) -->
+                <!-- Bottom Drawer Actions: Profile placed right near Sign Out -->
                 ${state.user ? `
-                    <div class="pt-3 border-top" style="border-color: var(--border-color);">
+                    <div class="pt-3 border-top d-flex flex-column gap-2" style="border-color: var(--border-color);">
+                        <a class="sidebar-nav-link ${path === 'profile' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/profile')">
+                            <i class="fa-solid fa-user-circle me-2 text-primary"></i> ${t('profile')}
+                        </a>
                         <button class="btn btn-outline-danger w-100 py-2 fw-semibold btn-sm" id="sidebarLogoutBtn">
                             <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> ${t('signOut')}
                         </button>
                     </div>
-                ` : ''}
+                ` : `
+                    <div class="pt-3 border-top" style="border-color: var(--border-color);">
+                        <a href="javascript:void(0)" onclick="window.navigateFromSidebar('#/login')" class="btn btn-pill-primary w-100 py-2 fw-semibold justify-content-center">
+                            <i class="fa-solid fa-right-to-bracket me-2"></i> ${t('signIn')}
+                        </a>
+                    </div>
+                `}
             </div>
         </div>
 
         <main class="flex-grow-1" id="page-content"></main>
         <footer class="py-3 mt-auto border-top">
-            <div class="container-fluid px-lg-4 d-flex flex-wrap justify-content-between align-items-center text-muted small">
-                <div><strong>SignEase</strong> &copy; 2026. ${t('footerNote')}</div>
-                <div class="d-flex align-items-center gap-3">
-                    <span><i class="fa-solid fa-shield-check text-success me-1"></i> 100% Safe</span>
-                    <a href="#/verify" class="text-decoration-none text-primary fw-medium"><i class="fa-solid fa-magnifying-glass me-1"></i> ${t('verify')}</a>
-                </div>
+            <div class="container-fluid px-lg-4 text-center text-muted small">
+                <div><strong>SignEase</strong> &copy; 2026. All rights reserved.</div>
             </div>
         </footer>
     `;
@@ -917,9 +884,15 @@ async function renderDashboard(container) {
 
     try {
         const stats = await api.getDashboardStats();
-        const userName = state.user?.fullName ? state.user.fullName.split(' ')[0] : 'Rajesh';
+        const userName = state.user?.fullName ? state.user.fullName.split(' ')[0] : 'User';
         const formattedDate = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
         const currentTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const totalDocs = Number.isInteger(stats?.totalDocuments) ? stats.totalDocuments : 0;
+        const pendingDocs = Number.isInteger(stats?.pendingSignatures) ? stats.pendingSignatures : 0;
+        const completedDocs = Number.isInteger(stats?.completedDocuments) ? stats.completedDocuments : 0;
+        const completionRate = totalDocs > 0 ? Math.round((completedDocs / totalDocs) * 100) : 0;
+        const recentDocs = Array.isArray(stats?.recentDocuments) ? stats.recentDocuments : [];
 
         container.innerHTML = `
             <div class="container-fluid px-lg-4 py-4">
@@ -932,7 +905,7 @@ async function renderDashboard(container) {
                             </span>
                         </div>
                         <h2 class="fw-bold mb-1" style="letter-spacing: -0.5px;">${t('greeting')} ${userName}</h2>
-                        <p class="text-muted small mb-0">${formattedDate} &bull; ${stats.pendingSignatures || 3} ${t('attentionSub')}</p>
+                        <p class="text-muted small mb-0">${formattedDate} &bull; ${pendingDocs} ${t('attentionSub')}</p>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-card text-muted border rounded-pill px-3 py-2 fw-semibold shadow-sm" style="font-size: 0.8rem;">
@@ -941,16 +914,16 @@ async function renderDashboard(container) {
                     </div>
                 </div>
 
-                <!-- 3 Large Stat KPI Cards (Matches Screenshot 4) -->
+                <!-- 3 Large Stat KPI Cards (Real Time Values) -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
                         <div class="kpi-card">
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
                                     <div class="kpi-label">${t('totalDocs')}</div>
-                                    <div class="kpi-value">${stats.totalDocuments || 14}</div>
-                                    <div class="small text-success fw-semibold mt-1">
-                                        <i class="fa-solid fa-arrow-up me-1"></i> ${t('thisWeekGrowth')}
+                                    <div class="kpi-value">${totalDocs}</div>
+                                    <div class="small text-muted mt-1">
+                                        ${totalDocs > 0 ? `${totalDocs} total agreement${totalDocs === 1 ? '' : 's'}` : '0 uploaded'}
                                     </div>
                                 </div>
                                 <div class="kpi-icon-box icon-blue">
@@ -964,11 +937,15 @@ async function renderDashboard(container) {
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
                                     <div class="kpi-label">${t('pendingDocs')}</div>
-                                    <div class="kpi-value text-warning">${stats.pendingSignatures || 3}</div>
+                                    <div class="kpi-value ${pendingDocs > 0 ? 'text-warning' : ''}">${pendingDocs}</div>
                                     <div class="mt-1">
-                                        <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small fw-bold">
-                                            ${t('actionNeeded')}
-                                        </span>
+                                        ${pendingDocs > 0 ? `
+                                            <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1 small fw-bold">
+                                                ${t('actionNeeded')}
+                                            </span>
+                                        ` : `
+                                            <span class="small text-muted">All up to date</span>
+                                        `}
                                     </div>
                                 </div>
                                 <div class="kpi-icon-box icon-orange">
@@ -982,9 +959,9 @@ async function renderDashboard(container) {
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
                                     <div class="kpi-label">${t('completedDocs')}</div>
-                                    <div class="kpi-value text-success">${stats.completedDocuments || 9}</div>
+                                    <div class="kpi-value text-success">${completedDocs}</div>
                                     <div class="small text-muted mt-1">
-                                        ${t('rateDone')}
+                                        ${completionRate}% completed
                                     </div>
                                 </div>
                                 <div class="kpi-icon-box icon-green">
@@ -1013,7 +990,7 @@ async function renderDashboard(container) {
                     </div>
                 </div>
 
-                <!-- Documents Table (Matches Screenshot 4) -->
+                <!-- Documents Table -->
                 <div class="table-card mb-4">
                     <div class="table-responsive">
                         <table class="table-custom">
@@ -1026,7 +1003,7 @@ async function renderDashboard(container) {
                                 </tr>
                             </thead>
                             <tbody id="dashTableBody">
-                                ${stats.recentDocuments && stats.recentDocuments.length > 0 ? stats.recentDocuments.map((d, idx) => `
+                                ${recentDocs.length > 0 ? recentDocs.map((d, idx) => `
                                     <tr>
                                         <td>
                                             <div class="d-flex align-items-center gap-3">
@@ -1036,26 +1013,21 @@ async function renderDashboard(container) {
                                                 <div>
                                                     <div class="d-flex align-items-center gap-2">
                                                         <a href="#/documents/${d.id}" class="fw-bold text-decoration-none text-main">${d.title}</a>
-                                                        ${d.status === 'SENT' || d.status === 'IN_PROGRESS' ? `<span class="badge bg-danger-subtle text-danger rounded-pill small" style="font-size: 0.68rem;">You sign next</span>` : ''}
+                                                        ${d.status === 'SENT' || d.status === 'IN_PROGRESS' ? `<span class="badge bg-danger-subtle text-danger rounded-pill small" style="font-size: 0.68rem;">Pending Signature</span>` : ''}
                                                     </div>
                                                     <div class="small text-muted mt-1" style="font-size: 0.76rem;">
-                                                        Ref: #SE-${d.id.substring(0, 5).toUpperCase()} &bull; Aadhaar OTP required &bull; ${d.pages || 1} pgs (${d.fileName})
+                                                        Ref: #SE-${(d.id || '').substring(0, 5).toUpperCase()} &bull; ${d.pages || 1} pgs &bull; ${d.fileName || d.title}
                                                     </div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="signer-avatar-chip ${idx % 2 === 0 ? 'avatar-blue' : 'avatar-orange'}">
-                                                    ${(d.uploadedByName || 'Rajesh').substring(0, 2).toUpperCase()}
-                                                </div>
-                                                <span class="small ${d.status === 'COMPLETED' ? 'text-success fw-semibold' : 'text-muted'}">
-                                                    ${d.status === 'COMPLETED' ? 'Signed by all 3 parties' : 'Awaiting you (1 of 2 signed)'}
-                                                </span>
-                                            </div>
+                                            <span class="status-pill status-${(d.status || 'draft').toLowerCase()}">
+                                                <span class="status-dot"></span> ${d.status === 'COMPLETED' ? 'Completed & Sealed' : (d.status === 'SENT' || d.status === 'IN_PROGRESS' ? 'Pending Signature' : 'Draft')}
+                                            </span>
                                         </td>
                                         <td class="small text-muted">
-                                            ${new Date(d.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}, ${new Date(d.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            ${d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recently'}
                                         </td>
                                         <td class="text-end">
                                             <div class="d-inline-flex align-items-center gap-1">
@@ -1076,68 +1048,13 @@ async function renderDashboard(container) {
                                     </tr>
                                 `).join('') : `
                                     <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <div class="file-thumb-icon"><i class="fa-regular fa-file-pdf"></i></div>
-                                                <div>
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <span class="fw-bold text-main">Vendor_Agreement_Q4_Acro.pdf</span>
-                                                        <span class="badge bg-danger-subtle text-danger rounded-pill small" style="font-size: 0.68rem;">You sign next</span>
-                                                    </div>
-                                                    <div class="small text-muted mt-1" style="font-size: 0.76rem;">Ref: #SE-88219 &bull; Aadhaar OTP required &bull; 1.4 MB</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="signer-avatar-chip avatar-blue">RS</div>
-                                                <span class="small text-muted">Awaiting you (1 of 2 signed)</span>
-                                            </div>
-                                        </td>
-                                        <td class="small text-muted">Today, 09:15 AM</td>
-                                        <td class="text-end">
-                                            <a href="#/upload" class="btn btn-pill btn-pill-primary btn-sm px-3"><i class="fa-solid fa-pen-nib me-1"></i> ${t('signNow')}</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <div class="file-thumb-icon"><i class="fa-regular fa-file-pdf"></i></div>
-                                                <div>
-                                                    <span class="fw-bold text-main">Residential_Lease_Indiranagar.pdf</span>
-                                                    <div class="small text-muted mt-1" style="font-size: 0.76rem;">Ref: #SE-77341 &bull; 2 Signers &bull; 840 KB</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="signer-avatar-chip avatar-orange">SK</div>
-                                                <span class="small text-muted">Waiting for Sarah Khan</span>
-                                            </div>
-                                        </td>
-                                        <td class="small text-muted">Yesterday, 4:20 PM</td>
-                                        <td class="text-end">
-                                            <button class="btn btn-pill btn-pill-outline btn-sm px-3"><i class="fa-regular fa-bell me-1"></i> ${t('remind')}</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <div class="file-thumb-icon"><i class="fa-regular fa-file-pdf"></i></div>
-                                                <div>
-                                                    <span class="fw-bold text-main">Offer_Letter_ProductLead.pdf</span>
-                                                    <div class="small text-muted mt-1" style="font-size: 0.76rem;">Ref: #SE-65100 &bull; Tamper-evident seal intact</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="badge bg-success-subtle text-success rounded-pill small px-2 py-1">Signed by all 3 parties</span>
-                                            </div>
-                                        </td>
-                                        <td class="small text-muted">Oct 20, 11:45 AM</td>
-                                        <td class="text-end">
-                                            <button class="btn btn-pill btn-pill-outline btn-sm px-3"><i class="fa-solid fa-download me-1"></i> ${t('download')}</button>
+                                        <td colspan="4" class="text-center py-5 text-muted">
+                                            <div class="mb-3"><i class="fa-regular fa-folder-open fs-1 text-secondary opacity-50"></i></div>
+                                            <h6 class="fw-semibold text-main">No documents uploaded yet</h6>
+                                            <p class="small text-muted mb-3">Upload your first agreement or contract to send for signature.</p>
+                                            <a href="#/upload" class="btn btn-pill btn-pill-primary btn-sm px-4">
+                                                <i class="fa-solid fa-cloud-arrow-up me-1"></i> Upload Document
+                                            </a>
                                         </td>
                                     </tr>
                                 `}
@@ -1146,25 +1063,11 @@ async function renderDashboard(container) {
                     </div>
                     <!-- Table Footer Pagination bar -->
                     <div class="p-3 bg-card border-top d-flex flex-wrap justify-content-between align-items-center text-muted small">
-                        <div>Showing 5 of ${stats.totalDocuments || 14} agreements</div>
+                        <div>Showing ${recentDocs.length} of ${totalDocs} agreement${totalDocs === 1 ? '' : 's'}</div>
                         <a href="#/documents" class="text-primary fw-semibold text-decoration-none">
                             ${t('viewVaultLink')}
                         </a>
                     </div>
-                </div>
-
-                <!-- Bottom Trust Card (Matches Screenshot 4) -->
-                <div class="trust-banner-card">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
-                        <div>
-                            <h6 class="fw-bold mb-1">${t('legalValidityGuaranteed')}</h6>
-                            <p class="text-muted small mb-0">${t('legalValidityDesc')}</p>
-                        </div>
-                    </div>
-                    <a href="#/verify" class="small text-primary fw-semibold text-decoration-none">
-                        ${t('auditTrailGuide')}
-                    </a>
                 </div>
             </div>
         `;
@@ -1179,13 +1082,15 @@ async function renderDocuments(container, filterStatus = 'ALL') {
 
     try {
         const docs = await api.getDocuments(filterStatus);
-        const totalCount = docs.length || 14;
-        const pendingCount = docs.filter(d => d.status === 'SENT' || d.status === 'IN_PROGRESS').length || 1;
-        const completedCount = docs.filter(d => d.status === 'COMPLETED').length || 9;
+        const allDocs = Array.isArray(docs) ? docs : [];
+        const totalCount = allDocs.length;
+        const pendingCount = allDocs.filter(d => d.status === 'SENT' || d.status === 'IN_PROGRESS').length;
+        const completedCount = allDocs.filter(d => d.status === 'COMPLETED').length;
+        const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
         container.innerHTML = `
             <div class="container-fluid px-lg-4 py-4">
-                <!-- 4 Top KPI Cards (Matches Screenshot 2) -->
+                <!-- 4 Top KPI Cards (Real Time Values) -->
                 <div class="row g-3 mb-4">
                     <div class="col-6 col-lg-3">
                         <div class="kpi-card">
@@ -1193,8 +1098,8 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                                 <div>
                                     <div class="kpi-label">${t('activeEnvelopes')}</div>
                                     <div class="kpi-value">${totalCount}</div>
-                                    <div class="small text-success fw-semibold mt-1">
-                                        <i class="fa-solid fa-arrow-up me-1"></i> ${t('thisWeekGrowth')}
+                                    <div class="small text-muted mt-1">
+                                        ${totalCount > 0 ? `${totalCount} registered` : '0 uploaded'}
                                     </div>
                                 </div>
                                 <div class="kpi-icon-box icon-blue">
@@ -1208,9 +1113,9 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
                                     <div class="kpi-label">${t('needsAction')}</div>
-                                    <div class="kpi-value text-danger">${pendingCount}</div>
-                                    <div class="small text-danger fw-semibold mt-1">
-                                        <i class="fa-solid fa-circle text-danger me-1" style="font-size: 0.45rem;"></i> ${t('urgentReview')}
+                                    <div class="kpi-value ${pendingCount > 0 ? 'text-danger' : ''}">${pendingCount}</div>
+                                    <div class="small text-muted mt-1">
+                                        ${pendingCount > 0 ? 'Pending signature' : 'No action needed'}
                                     </div>
                                 </div>
                                 <div class="kpi-icon-box icon-orange">
@@ -1224,9 +1129,9 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
                                     <div class="kpi-label">${t('awaitingSigners')}</div>
-                                    <div class="kpi-value">${pendingCount > 1 ? pendingCount : 4}</div>
+                                    <div class="kpi-value ${pendingCount > 0 ? 'text-warning' : ''}">${pendingCount}</div>
                                     <div class="small text-muted mt-1">
-                                        ${t('externalParties')}
+                                        ${pendingCount > 0 ? `${pendingCount} awaiting signature` : 'All signed'}
                                     </div>
                                 </div>
                                 <div class="kpi-icon-box icon-orange">
@@ -1239,14 +1144,14 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                         <div class="kpi-card">
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
-                                    <div class="kpi-label">${t('verificationAudit')}</div>
-                                    <div class="kpi-value text-success">100%</div>
-                                    <div class="small text-success fw-semibold mt-1">
-                                        <i class="fa-solid fa-shield-check me-1"></i> ${t('itActCompliant')}
+                                    <div class="kpi-label">${t('completedDocs')}</div>
+                                    <div class="kpi-value text-success">${completedCount}</div>
+                                    <div class="small text-muted mt-1">
+                                        ${completionRate}% completed
                                     </div>
                                 </div>
                                 <div class="kpi-icon-box icon-green">
-                                    <i class="fa-solid fa-shield-halved"></i>
+                                    <i class="fa-solid fa-circle-check"></i>
                                 </div>
                             </div>
                         </div>
@@ -1260,9 +1165,6 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                         <p class="text-muted small mb-0">${t('docRegistrySub')}</p>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-pill btn-pill-outline btn-sm shadow-sm" id="exportCsvBtn" onclick="alert('Exporting agreements ledger to CSV...')">
-                            <i class="fa-solid fa-arrow-down-to-line me-1"></i> ${t('exportCsv')}
-                        </button>
                         <a href="#/upload" class="btn btn-pill btn-pill-primary shadow-sm">
                             <i class="fa-solid fa-plus me-1"></i> ${t('newAgreement')}
                         </a>
@@ -1279,7 +1181,7 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                             ${t('filterRequiresMe')} <span class="badge bg-danger text-white ms-1">${pendingCount}</span>
                         </a>
                         <a class="filter-pill ${filterStatus === 'IN_PROGRESS' ? 'active' : ''}" href="#/documents?status=IN_PROGRESS">
-                            ${t('filterWaitingOthers')} <span class="badge bg-secondary ms-1">4</span>
+                            ${t('filterWaitingOthers')} <span class="badge bg-secondary ms-1">${pendingCount}</span>
                         </a>
                         <a class="filter-pill ${filterStatus === 'COMPLETED' ? 'active' : ''}" href="#/documents?status=COMPLETED">
                             ${t('filterCompleted')} <span class="badge bg-success ms-1">${completedCount}</span>
@@ -1305,11 +1207,11 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${docs && docs.length > 0 ? docs.map((d, idx) => {
+                                ${allDocs.length > 0 ? allDocs.map((d, idx) => {
                                     let statusClass = 'status-pending';
                                     let statusLabel = 'Pending';
                                     if (d.status === 'COMPLETED') { statusClass = 'status-completed'; statusLabel = 'Completed & Sealed'; }
-                                    else if (d.status === 'SENT') { statusClass = 'status-signed'; statusLabel = 'Signed'; }
+                                    else if (d.status === 'SENT' || d.status === 'IN_PROGRESS') { statusClass = 'status-signed'; statusLabel = 'In Execution'; }
                                     else if (d.status === 'DRAFT') { statusClass = 'status-draft'; statusLabel = 'Draft'; }
 
                                     return `
@@ -1324,7 +1226,7 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                                                             <a href="#/documents/${d.id}" class="text-decoration-none text-main">${d.title}</a>
                                                         </div>
                                                         <div class="small text-muted mt-1" style="font-size: 0.76rem;">
-                                                            DOC-2026-${d.id.substring(0, 4).toUpperCase()} &bull; PDF (${Math.round((d.fileSize || 1024) / 1024)} KB)
+                                                            DOC-2026-${(d.id || '').substring(0, 4).toUpperCase()} &bull; PDF (${Math.round((d.fileSize || 1024) / 1024)} KB)
                                                         </div>
                                                     </div>
                                                 </div>
@@ -1332,9 +1234,9 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                                             <td>
                                                 <div class="d-flex align-items-center gap-2">
                                                     <div class="signer-avatar-chip ${idx % 3 === 0 ? 'avatar-blue' : (idx % 3 === 1 ? 'avatar-orange' : 'avatar-purple')}">
-                                                        ${(d.uploadedByName || 'SJ').substring(0, 2).toUpperCase()}
+                                                        ${(d.uploadedByName || 'RS').substring(0, 2).toUpperCase()}
                                                     </div>
-                                                    <span class="small text-muted">${d.uploadedByName || 'Sarah Jenkins'}</span>
+                                                    <span class="small text-muted">${d.uploadedByName || (state.user?.fullName ? state.user.fullName : 'Signer')}</span>
                                                 </div>
                                             </td>
                                             <td>
@@ -1343,8 +1245,8 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                                                 </span>
                                             </td>
                                             <td class="small text-muted">
-                                                <div>${new Date(d.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-                                                <div style="font-size: 0.72rem; color: var(--text-light);">${d.status === 'COMPLETED' ? 'Timestamped & Stored' : 'Expires in 5 days'}</div>
+                                                <div>${d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recently'}</div>
+                                                <div style="font-size: 0.72rem; color: var(--text-light);">${d.status === 'COMPLETED' ? 'Timestamped & Stored' : 'Expires in 30 days'}</div>
                                             </td>
                                             <td class="text-end">
                                                 <div class="d-inline-flex align-items-center gap-1">
@@ -1374,90 +1276,13 @@ async function renderDocuments(container, filterStatus = 'ALL') {
                                     `;
                                 }).join('') : `
                                     <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <div class="file-thumb-icon"><i class="fa-solid fa-file-contract"></i></div>
-                                                <div>
-                                                    <div class="fw-bold text-main">Master Service Agreement</div>
-                                                    <div class="small text-muted mt-1" style="font-size: 0.76rem;">DOC-2024-8841 &bull; PDF (3.2 MB)</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="signer-avatar-chip avatar-blue">SJ</div>
-                                                <span class="small text-muted">Sarah Jenkins</span>
-                                            </div>
-                                        </td>
-                                        <td><span class="status-pill status-pending"><span class="status-dot"></span> Pending</span></td>
-                                        <td class="small text-muted"><div>Updated 2h ago</div><div style="font-size: 0.72rem; color: var(--text-light);">Expires in 5 days</div></td>
-                                        <td class="text-end">
-                                            <a href="#/upload" class="btn btn-pill btn-pill-primary btn-sm px-3"><i class="fa-solid fa-pen-nib me-1"></i> Review &amp; Sign</a>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <div class="file-thumb-icon" style="background: rgba(16, 185, 129, 0.15); color: #10b981;"><i class="fa-solid fa-shield-halved"></i></div>
-                                                <div>
-                                                    <div class="fw-bold text-main">Founder IP Assignment</div>
-                                                    <div class="small text-muted mt-1" style="font-size: 0.76rem;">DOC-2024-7612 &bull; Hash: 8f2a...1e4c</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="signer-avatar-chip avatar-blue">RS</div>
-                                                <span class="small text-muted">Rajesh Sharma (You)</span>
-                                            </div>
-                                        </td>
-                                        <td><span class="status-pill status-completed"><span class="status-dot"></span> Completed &amp; Sealed</span></td>
-                                        <td class="small text-muted"><div>Nov 12, 2024</div><div style="font-size: 0.72rem; color: var(--text-light);">Timestamped &amp; Stored</div></td>
-                                        <td class="text-end">
-                                            <button class="btn btn-pill btn-pill-outline btn-sm px-3"><i class="fa-solid fa-download me-1"></i> Download PDF</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <div class="file-thumb-icon" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4;"><i class="fa-solid fa-signature"></i></div>
-                                                <div>
-                                                    <div class="fw-bold text-main">Mutual NDA - Vertex Labs</div>
-                                                    <div class="small text-muted mt-1" style="font-size: 0.76rem;">DOC-2024-5109 &bull; 2 Signatures</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <div class="signer-avatar-chip avatar-purple">VL</div>
-                                                <span class="small text-muted">Vertex Legal Team</span>
-                                            </div>
-                                        </td>
-                                        <td><span class="status-pill status-signed"><span class="status-dot"></span> Signed</span></td>
-                                        <td class="small text-muted"><div>Nov 10, 2024</div><div style="font-size: 0.72rem; color: var(--text-light);">Fully Executed</div></td>
-                                        <td class="text-end">
-                                            <button class="btn btn-pill btn-pill-outline btn-sm px-3"><i class="fa-solid fa-download me-1"></i> Download PDF</button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-3">
-                                                <div class="file-thumb-icon" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;"><i class="fa-regular fa-file"></i></div>
-                                                <div>
-                                                    <div class="fw-bold text-main">Residential Commercial Lease</div>
-                                                    <div class="small text-muted mt-1" style="font-size: 0.76rem;">DOC-2024-9120 &bull; Incomplete Draft</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="small text-muted">&ndash;&ndash; Unassigned</span>
-                                            </div>
-                                        </td>
-                                        <td><span class="status-pill status-draft"><span class="status-dot"></span> Draft</span></td>
-                                        <td class="small text-muted"><div>Created Yesterday</div><div style="font-size: 0.72rem; color: var(--text-light);">Auto-saved</div></td>
-                                        <td class="text-end">
-                                            <a href="#/upload" class="btn btn-pill btn-pill-outline btn-sm px-3"><i class="fa-solid fa-pen-to-square me-1"></i> Continue Edit</a>
+                                        <td colspan="5" class="text-center py-5 text-muted">
+                                            <div class="mb-3"><i class="fa-regular fa-folder-open fs-1 text-secondary opacity-50"></i></div>
+                                            <h6 class="fw-semibold text-main">No documents found in vault</h6>
+                                            <p class="small text-muted mb-3">Upload your first agreement to manage and track signatures in real-time.</p>
+                                            <a href="#/upload" class="btn btn-pill btn-pill-primary btn-sm px-4">
+                                                <i class="fa-solid fa-cloud-arrow-up me-1"></i> Upload Document
+                                            </a>
                                         </td>
                                     </tr>
                                 `}
@@ -1467,32 +1292,8 @@ async function renderDocuments(container, filterStatus = 'ALL') {
 
                     <!-- Pagination Footer (Matches Screenshot 2) -->
                     <div class="p-3 bg-card border-top d-flex flex-wrap justify-content-between align-items-center text-muted small">
-                        <div>Showing <strong>1-4</strong> of <strong>${totalCount}</strong> agreements</div>
-                        <div class="d-flex align-items-center gap-1">
-                            <button class="btn btn-pill btn-pill-outline btn-sm px-2 py-1 disabled"><i class="fa-solid fa-chevron-left me-1"></i> Prev</button>
-                            <button class="btn btn-pill btn-pill-primary btn-sm px-3 py-1">1</button>
-                            <button class="btn btn-pill btn-pill-outline btn-sm px-3 py-1">2</button>
-                            <button class="btn btn-pill btn-pill-outline btn-sm px-3 py-1">3</button>
-                            <button class="btn btn-pill btn-pill-outline btn-sm px-3 py-1">4</button>
-                            <button class="btn btn-pill btn-pill-outline btn-sm px-2 py-1">Next <i class="fa-solid fa-chevron-right ms-1"></i></button>
-                        </div>
+                        <div>Showing <strong>${allDocs.length}</strong> of <strong>${totalCount}</strong> agreement${totalCount === 1 ? '' : 's'}</div>
                     </div>
-                </div>
-
-                <!-- Bottom Hardware Encryption Trust Card (Matches Screenshot 2) -->
-                <div class="trust-banner-card">
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="brand-icon" style="background: linear-gradient(135deg, #0d6efd 0%, #06b6d4 100%);">
-                            <i class="fa-solid fa-shield-halved"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-1">${t('hsmActive')}</h6>
-                            <p class="text-muted small mb-0">${t('hsmDesc')}</p>
-                        </div>
-                    </div>
-                    <a href="#/verify" class="small text-primary fw-semibold text-decoration-none">
-                        ${t('viewCryptoCert')}
-                    </a>
                 </div>
             </div>
         `;
