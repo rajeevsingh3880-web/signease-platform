@@ -108,6 +108,7 @@ public class ApiSigningController {
             resp.put("signerPhone", invite.getPhone());
             resp.put("deliveryChannel", invite.getDeliveryChannel() != null ? invite.getDeliveryChannel() : "EMAIL_AND_WHATSAPP");
             resp.put("verificationMethod", invite.getVerificationMethod() != null ? invite.getVerificationMethod() : "WHATSAPP_OTP");
+            resp.put("clientTier", invite.getClientTier() != null ? invite.getClientTier() : 0);
             resp.put("signerStatus", invite.getStatus());
             resp.put("otpVerified", invite.getOtpVerified());
             resp.put("aadhaarVerified", invite.getAadhaarVerified());

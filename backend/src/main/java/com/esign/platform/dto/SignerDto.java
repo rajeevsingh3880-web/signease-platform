@@ -16,5 +16,6 @@ public class SignerDto {
     private Integer order;
     private String deliveryChannel;
     private String verificationMethod;
+    private Integer clientTier;
 }
 

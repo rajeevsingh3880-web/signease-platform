@@ -76,6 +76,10 @@ public class SignerInvite {
     @Builder.Default
     private String verificationMethod = "WHATSAPP_OTP";
 
+    @Column(name = "client_tier")
+    @Builder.Default
+    private Integer clientTier = 0;
+
     @Column(name = "decline_reason", columnDefinition = "TEXT")
     private String declineReason;
 

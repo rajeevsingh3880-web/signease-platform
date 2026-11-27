@@ -91,6 +91,7 @@ public class SigningService {
                     .phone(signerDto.getPhone())
                     .deliveryChannel(delivery)
                     .verificationMethod(verification)
+                    .clientTier(signerDto.getClientTier() != null ? signerDto.getClientTier() : 0)
                     .signOrder(signerDto.getOrder() != null ? signerDto.getOrder() : order++)
                     .status(SignerInvite.Status.PENDING)
                     .signingToken(UUID.randomUUID())

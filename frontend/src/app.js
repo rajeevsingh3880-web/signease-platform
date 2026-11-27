@@ -327,6 +327,9 @@ async function render() {
                     <a class="sidebar-nav-link ${path === 'documents' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/documents')">
                         <i class="fa-regular fa-folder me-2 text-primary"></i> ${t('documents')}
                     </a>
+                    <a class="sidebar-nav-link ${path === 'templates' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/templates')">
+                        <i class="fa-solid fa-layer-group me-2 text-primary"></i> ${t('templates')}
+                    </a>
                     <a class="sidebar-nav-link ${path === 'reports' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/reports')">
                         <i class="fa-solid fa-file-csv me-2 text-primary"></i> ${t('reportGeneration')}
                     </a>
@@ -360,7 +363,7 @@ async function render() {
         <main class="flex-grow-1" id="page-content"></main>
         <footer class="py-3 mt-auto border-top">
             <div class="container-fluid px-lg-4 text-center text-muted small">
-                <div><strong>SignEase</strong> &copy; 2026. All rights reserved.</div>
+                <div><strong>SignEase</strong> &copy; 2026. All rights reserved. &bull; <a href="#/terms" class="text-muted text-decoration-none">${t('termsAndConditions')}</a></div>
             </div>
         </footer>
     `;
@@ -383,7 +386,7 @@ async function render() {
     const content = document.getElementById('page-content');
 
     // Route Dispatcher
-    if (!state.user && !['', '/', 'login', 'register', 'forgot-password', 'verify'].includes(path)) {
+    if (!state.user && !['', '/', 'login', 'register', 'forgot-password', 'verify', 'terms'].includes(path)) {
         showToast('Please sign in first to access this page.', 'warning');
         window.location.hash = '#/login';
         return;
@@ -399,10 +402,14 @@ async function render() {
         renderLogin(content);
     } else if (path === 'register') {
         renderRegister(content);
+    } else if (path === 'terms') {
+        renderTerms(content);
     } else if (path === 'forgot-password') {
         renderForgotPassword(content);
     } else if (path === 'reports') {
         renderReports(content);
+    } else if (path === 'templates') {
+        renderTemplates(content);
     } else if (path === 'dashboard') {
         renderDashboard(content);
     } else if (path === 'documents') {
@@ -444,10 +451,10 @@ function renderLanding(container) {
                         <i class="fa-solid fa-pen-nib me-2"></i> ${t('btnStartFree')}
                     </a>
                     <a href="#/login" class="btn btn-outline-secondary btn-lg px-4">
-                        <i class="fa-solid fa-right-to-bracket me-2"></i> ${t('btnSenderDashboard')}
+                        <i class="fa-solid fa-right-to-bracket me-2"></i> ${t('signIn')}
                     </a>
-                    <a href="#/verify" class="btn btn-outline-success btn-lg px-4">
-                        <i class="fa-solid fa-shield-halved me-2"></i> ${t('btnVerifyDoc')}
+                    <a href="#/templates" class="btn btn-outline-primary btn-lg px-4">
+                        <i class="fa-solid fa-layer-group me-2"></i> ${t('templates')}
                     </a>
                 </div>
 
@@ -600,9 +607,15 @@ function renderRegister(container) {
                             <input type="text" id="regLast" class="form-control" placeholder="Sharma" required>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-muted">${t('orgName')} *</label>
-                        <input type="text" id="regOrg" class="form-control" placeholder="Acme Enterprises" required>
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold text-muted">${t('orgName')} *</label>
+                            <input type="text" id="regOrg" class="form-control" placeholder="Acme Enterprises" required>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label small fw-semibold text-muted"><i class="fa-solid fa-phone me-1"></i> ${t('phone')} *</label>
+                            <input type="tel" id="regPhone" class="form-control" placeholder="+91 98765 43210" required>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold text-muted">${t('emailAddress')} *</label>
@@ -696,6 +709,17 @@ function renderRegister(container) {
                             </button>
                         </div>
                         <div id="regConfirmPassAlert" class="small mt-1"></div>
+                    </div>
+
+                    <!-- Simplified Terms & Conditions Agreement Checkbox -->
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="regTerms" required>
+                            <label class="form-check-label small text-muted" for="regTerms">
+                                I agree to the <a href="#/terms" target="_blank" class="fw-semibold text-primary text-decoration-none">${t('termsAndConditions')}</a> *
+                            </label>
+                        </div>
+                        <div id="regTermsAlert" class="small text-danger mt-1"></div>
                     </div>
 
                     <button type="submit" id="submitRegBtn" class="btn btn-pill btn-pill-primary w-100 py-2 fw-semibold mb-3 justify-content-center shadow-sm">
@@ -977,6 +1001,21 @@ function renderRegister(container) {
             return;
         }
 
+        const termsCheck = document.getElementById('regTerms');
+        if (termsCheck && !termsCheck.checked) {
+            const termsAlert = document.getElementById('regTermsAlert');
+            if (termsAlert) termsAlert.innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> You must agree to the Terms and Conditions to create an account.';
+            termsCheck.focus();
+            return;
+        }
+
+        const phoneVal = document.getElementById('regPhone') ? document.getElementById('regPhone').value.trim() : '';
+        if (!phoneVal) {
+            alert('Please enter your mobile phone number.');
+            document.getElementById('regPhone')?.focus();
+            return;
+        }
+
         const submitBtn = document.getElementById('submitRegBtn');
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Creating Account...';
@@ -986,8 +1025,10 @@ function renderRegister(container) {
                 firstName: document.getElementById('regFirst').value.trim(),
                 lastName: document.getElementById('regLast').value.trim(),
                 organizationName: document.getElementById('regOrg').value.trim(),
+                phone: phoneVal,
                 email: email,
-                password: document.getElementById('regPass').value,
+                password: password,
+                confirmPassword: confirmPassword,
                 otpCode: otpCode
             };
             const auth = await api.register(data);
@@ -1455,9 +1496,9 @@ async function renderDashboard(container) {
                     </div>
                 </div>
 
-                <!-- 3 Large Stat KPI Cards (Dynamically Updated by Timeframe) -->
+                <!-- 4 Large Stat KPI Cards (Tracks Documents & Terms and Conditions Counts) -->
                 <div class="row g-3 mb-4">
-                    <div class="col-md-4">
+                    <div class="col-sm-6 col-xl-3">
                         <div class="kpi-card">
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
@@ -1471,7 +1512,7 @@ async function renderDashboard(container) {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-sm-6 col-xl-3">
                         <div class="kpi-card">
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
@@ -1487,7 +1528,7 @@ async function renderDashboard(container) {
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-sm-6 col-xl-3">
                         <div class="kpi-card">
                             <div class="d-flex align-items-start justify-content-between">
                                 <div>
@@ -1499,6 +1540,22 @@ async function renderDashboard(container) {
                                 </div>
                                 <div class="kpi-icon-box icon-green">
                                     <i class="fa-solid fa-circle-check"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl-3">
+                        <div class="kpi-card">
+                            <div class="d-flex align-items-start justify-content-between">
+                                <div>
+                                    <div class="kpi-label">${t('termsAcceptedCount') || 'TERMS ACCEPTED'}</div>
+                                    <div class="kpi-value text-primary" id="kpiTermsCount">100%</div>
+                                    <div class="small text-muted mt-1">
+                                        <i class="fa-solid fa-shield-halved text-success me-1"></i> IT Act Sec 10A verified
+                                    </div>
+                                </div>
+                                <div class="kpi-icon-box icon-blue">
+                                    <i class="fa-solid fa-file-contract"></i>
                                 </div>
                             </div>
                         </div>
@@ -2568,6 +2625,8 @@ async function renderSend(container, docId) {
         if (docId) {
             try { selectedDoc = await api.getDocument(docId); } catch (_) {}
         }
+        const hashParams = new URLSearchParams(window.location.hash.includes('?') ? window.location.hash.split('?')[1] : '');
+        const prefilledTitle = hashParams.get('title') || '';
 
         container.innerHTML = `
             <div class="container py-4" style="max-width: 860px;">
@@ -2638,7 +2697,7 @@ async function renderSend(container, docId) {
                         </div>
 
                         <div class="mt-3">
-                            <input type="text" id="envelopeTitle" class="form-control" placeholder="Agreement Title (e.g. Master Service Agreement)" value="${selectedDoc ? selectedDoc.title : ''}" required>
+                            <input type="text" id="envelopeTitle" class="form-control" placeholder="Agreement Title (e.g. Master Service Agreement)" value="${selectedDoc ? selectedDoc.title : prefilledTitle}" required>
                         </div>
                     </div>
 
@@ -2682,11 +2741,11 @@ async function renderSend(container, docId) {
                                     </div>
                                 </div>
                                 <div class="row g-2 align-items-center pt-2 border-top border-light-subtle">
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
                                         <div class="meta-box-label text-success"><i class="fa-brands fa-whatsapp"></i> WhatsApp Mobile</div>
                                         <input type="tel" class="form-control s-phone" placeholder="e.g. +91 98765 43210" value="+91 98765 43210">
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
                                         <div class="meta-box-label"><i class="fa-solid fa-paper-plane"></i> Delivery Channel</div>
                                         <select class="form-select s-channel">
                                             <option value="EMAIL_AND_WHATSAPP" selected>Email &amp; WhatsApp</option>
@@ -2694,12 +2753,21 @@ async function renderSend(container, docId) {
                                             <option value="EMAIL">Email Only</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-4">
+                                    <div class="col-md-3">
                                         <div class="meta-box-label"><i class="fa-solid fa-shield-halved"></i> Verification Option</div>
                                         <select class="form-select s-verif">
                                             <option value="WHATSAPP_OTP" selected>WhatsApp OTP</option>
                                             <option value="EMAIL_OTP">Email OTP</option>
                                             <option value="AADHAAR_ESIGN">Aadhaar e-Sign (UIDAI)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="meta-box-label"><i class="fa-solid fa-layer-group"></i> Client Tier</div>
+                                        <select class="form-select s-tier">
+                                            <option value="0" selected>Tier 0 (Standard Signer)</option>
+                                            <option value="1">Tier 1 (Internal Approver)</option>
+                                            <option value="2">Tier 2 (External Counterparty)</option>
+                                            <option value="3">Tier 3 (Executive Sign-Off)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -2821,11 +2889,11 @@ async function renderSend(container, docId) {
                         </div>
                     </div>
                     <div class="row g-2 align-items-center pt-2 border-top border-light-subtle">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="meta-box-label text-success"><i class="fa-brands fa-whatsapp"></i> WhatsApp Mobile</div>
                             <input type="tel" class="form-control s-phone" placeholder="e.g. +91 98765 43210">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="meta-box-label"><i class="fa-solid fa-paper-plane"></i> Delivery Channel</div>
                             <select class="form-select s-channel">
                                 <option value="EMAIL_AND_WHATSAPP" selected>Email &amp; WhatsApp</option>
@@ -2833,12 +2901,21 @@ async function renderSend(container, docId) {
                                 <option value="EMAIL">Email Only</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="meta-box-label"><i class="fa-solid fa-shield-halved"></i> Verification Option</div>
                             <select class="form-select s-verif">
                                 <option value="WHATSAPP_OTP" selected>WhatsApp OTP</option>
                                 <option value="EMAIL_OTP">Email OTP</option>
                                 <option value="AADHAAR_ESIGN">Aadhaar e-Sign (UIDAI)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="meta-box-label"><i class="fa-solid fa-layer-group"></i> Client Tier</div>
+                            <select class="form-select s-tier">
+                                <option value="0" selected>Tier 0 (Standard Signer)</option>
+                                <option value="1">Tier 1 (Internal Approver)</option>
+                                <option value="2">Tier 2 (External Counterparty)</option>
+                                <option value="3">Tier 3 (Executive Sign-Off)</option>
                             </select>
                         </div>
                     </div>
@@ -2880,6 +2957,7 @@ async function renderSend(container, docId) {
                         phone: r.querySelector('.s-phone') ? r.querySelector('.s-phone').value.trim() : '',
                         deliveryChannel: r.querySelector('.s-channel') ? r.querySelector('.s-channel').value : 'EMAIL_AND_WHATSAPP',
                         verificationMethod: r.querySelector('.s-verif') ? r.querySelector('.s-verif').value : 'WHATSAPP_OTP',
+                        clientTier: r.querySelector('.s-tier') ? parseInt(r.querySelector('.s-tier').value, 10) : 0,
                         role: r.querySelector('.s-role').value,
                         order: idx + 1
                     });
@@ -3467,8 +3545,195 @@ async function renderSignerPage(container, token) {
     }
 }
 
-// 10. Modern Public Verification View (Matches Screenshot 1)
+// 9.1 Terms and Conditions Page (Dedicated functional legal page)
+function renderTerms(container) {
+    container.innerHTML = `
+        <div class="container py-5" style="max-width: 860px;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <a href="#/" class="brand-logo fs-3">
+                    <div class="brand-icon"><i class="fa-solid fa-pen-nib"></i></div>
+                    <span>Sign<span class="text-primary">Ease</span></span>
+                </a>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-pill-outline" onclick="window.print()">
+                        <i class="fa-solid fa-print me-1"></i> Print Terms
+                    </button>
+                    <a href="#/register" class="btn btn-sm btn-pill btn-pill-primary">
+                        <i class="fa-solid fa-arrow-left me-1"></i> Back to Register
+                    </a>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm p-4 p-md-5 bg-card rounded-4">
+                <div class="border-bottom pb-3 mb-4">
+                    <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-bold small mb-2">LEGAL TERMS</span>
+                    <h2 class="fw-bold mb-1">SignEase Platform Terms &amp; Conditions</h2>
+                    <p class="text-muted small mb-0">Effective Date: November 2026 &bull; Governing Terms for B2B Digital Signature Services</p>
+                </div>
+
+                <div class="legal-body text-main" style="line-height: 1.7; font-size: 0.92rem;">
+                    <h5 class="fw-bold mt-4 mb-2 text-primary">1. Acceptance of Terms</h5>
+                    <p>By creating an account, accessing the SignEase platform, or utilizing our digital document signing and verification services, you ("User", "Organization", or "Subscriber") agree to be legally bound by these Terms and Conditions and our Privacy Policy. If you are accepting on behalf of an enterprise or institution, you represent and warrant that you possess requisite authorization.</p>
+
+                    <h5 class="fw-bold mt-4 mb-2 text-primary">2. B2B SaaS Platform &amp; Account Registration</h5>
+                    <p>SignEase operates as a cloud-based B2B electronic execution platform. To access document creation, sending, and workflow features, users must complete institutional registration, provide accurate contact and organization details, verify their email address via One-Time Passcode (OTP), and maintain a secure high-entropy password (8–16 characters comprising alphabetic, numeric, and special characters).</p>
+
+                    <h5 class="fw-bold mt-4 mb-2 text-primary">3. Legal Validity of Electronic Signatures</h5>
+                    <p>Electronic signatures, digital stamps, and cryptographic approvals executed via SignEase constitute legally valid and binding contractual executions under applicable contract laws, including Section 5 and Section 10A of the Information Technology Act (2000), the Indian Contract Act (1872), and international electronic commerce standards. Parties agree that electronic records and audit certificates generated by SignEase satisfy any statutory requirement for a writing and handwritten signature.</p>
+
+                    <h5 class="fw-bold mt-4 mb-2 text-primary">4. Cryptographic Hashing &amp; Tamper-Proof Audit Trail</h5>
+                    <p>Uploaded and executed documents receive SHA-256 cryptographic protection. Upon signing completion, an immutable completion certificate with Indian Standard Time (IST) timestamps, IP addresses, signer identities, and chain-of-custody hashes is recorded and securely sealed into the document.</p>
+
+                    <h5 class="fw-bold mt-4 mb-2 text-primary">5. User Obligations and Security</h5>
+                    <p>Users shall not impersonate another individual, upload fraudulent documents, or attempt unauthorized tampering with the platform's cryptographic ledger. Document verification features are restricted to authorized administrators in accordance with institutional access control policies.</p>
+
+                    <h5 class="fw-bold mt-4 mb-2 text-primary">6. Service Availability &amp; Modifications</h5>
+                    <p>SignEase undertakes commercial best efforts to maintain 99.9% platform availability. We reserve the right to deploy security updates, feature improvements, and policy amendments with notice to active institutional subscribers.</p>
+
+                    <h5 class="fw-bold mt-4 mb-2 text-primary">7. Governing Law &amp; Contact</h5>
+                    <p>These terms shall be governed by and construed in accordance with the laws of India. For any legal inquiries, enterprise compliance checks, or assistance, contact <a href="mailto:support@signease.io" class="text-primary fw-semibold">support@signease.io</a>.</p>
+                </div>
+
+                <div class="mt-4 pt-3 border-top text-center">
+                    <a href="#/register" class="btn btn-pill btn-pill-primary px-4 fw-semibold">
+                        <i class="fa-solid fa-check me-1"></i> Return to Create Account
+                    </a>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// 9.2 Reusable Document & Contract Templates Library
+function renderTemplates(container) {
+    const templatesList = [
+        {
+            id: 'msa',
+            title: 'Master Service Agreement (MSA)',
+            category: 'Enterprise Legal',
+            badge: 'Popular',
+            badgeClass: 'bg-primary-subtle text-primary',
+            desc: 'Standard commercial service contract governing deliverables, milestones, payment terms, and intellectual property rights between enterprise service providers and clients.',
+            signers: '2 Signers (Client & Provider)',
+            timeEst: '5 min setup'
+        },
+        {
+            id: 'nda',
+            title: 'Mutual Non-Disclosure Agreement (NDA)',
+            category: 'Confidentiality & IP',
+            badge: 'Standard',
+            badgeClass: 'bg-success-subtle text-success',
+            desc: 'Bilateral confidentiality agreement safeguarding proprietary business information, trade secrets, patents, and sensitive financial records.',
+            signers: '2 Signers (Disclosing & Receiving)',
+            timeEst: '3 min setup'
+        },
+        {
+            id: 'offer_letter',
+            title: 'Employment Offer Letter & Agreement',
+            category: 'Human Resources',
+            badge: 'HR Kit',
+            badgeClass: 'bg-warning-subtle text-warning',
+            desc: 'Comprehensive employment terms, compensation packages, probation requirements, code of conduct, and employee invention assignment clauses.',
+            signers: '2 Signers (Employer & Candidate)',
+            timeEst: '4 min setup'
+        },
+        {
+            id: 'vendor_agreement',
+            title: 'Vendor Procurement Agreement (Q4)',
+            category: 'Procurement',
+            badge: 'Commercial',
+            badgeClass: 'bg-info-subtle text-info',
+            desc: 'Procurement terms detailing supplier deliverables, SLA benchmarks, payment milestones, defect remediation, and commercial liability.',
+            signers: '2 Signers (Purchaser & Vendor)',
+            timeEst: '4 min setup'
+        },
+        {
+            id: 'commercial_lease',
+            title: 'Commercial Office Space Lease',
+            category: 'Real Estate',
+            badge: 'Property',
+            badgeClass: 'bg-secondary-subtle text-secondary',
+            desc: 'Commercial leasing contract establishing premises description, monthly rental schedule, maintenance obligations, and security deposit covenants.',
+            signers: '2 Signers (Landlord & Tenant)',
+            timeEst: '6 min setup'
+        },
+        {
+            id: 'founder_ip',
+            title: 'Founder IP & Inventions Assignment',
+            category: 'Corporate Governance',
+            badge: 'Startup Kit',
+            badgeClass: 'bg-dark-subtle text-dark',
+            desc: 'Full transfer and assignment of pre-incorporation intellectual property, source code, designs, and patents from founders to the corporate entity.',
+            signers: 'All Founders & Company Officer',
+            timeEst: '5 min setup'
+        }
+    ];
+
+    container.innerHTML = `
+        <div class="container-fluid px-lg-4 py-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-start mb-4 gap-2">
+                <div>
+                    <div class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1 fw-bold small mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                        <i class="fa-solid fa-layer-group me-1"></i> TEMPLATES LIBRARY
+                    </div>
+                    <h2 class="fw-bold mb-1" style="letter-spacing: -0.5px;">${t('templatesLibrary')}</h2>
+                    <p class="text-muted small mb-0">Select a pre-configured legal contract template to launch signing workflows instantly.</p>
+                </div>
+                <div>
+                    <a href="#/send" class="btn btn-pill btn-pill-primary shadow-sm">
+                        <i class="fa-solid fa-plus me-1"></i> Custom Document
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                ${templatesList.map(tmpl => `
+                    <div class="col-md-6 col-xl-4">
+                        <div class="card h-100 border-0 shadow-sm p-4 bg-card rounded-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="badge ${tmpl.badgeClass} rounded-pill px-3 py-1 fw-bold small">${tmpl.badge}</span>
+                                    <span class="small text-muted font-monospace"><i class="fa-regular fa-clock me-1"></i> ${tmpl.timeEst}</span>
+                                </div>
+                                <h5 class="fw-bold mb-2 text-main">${tmpl.title}</h5>
+                                <div class="small text-primary fw-semibold mb-2"><i class="fa-solid fa-tag me-1"></i> ${tmpl.category}</div>
+                                <p class="text-muted small mb-3" style="line-height: 1.5;">${tmpl.desc}</p>
+                            </div>
+                            <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                                <div class="small text-muted"><i class="fa-solid fa-users me-1 text-primary"></i> ${tmpl.signers}</div>
+                                <a href="#/send?template=${tmpl.id}&title=${encodeURIComponent(tmpl.title)}" class="btn btn-sm btn-pill btn-pill-primary px-3">
+                                    <i class="fa-solid fa-paper-plane me-1"></i> ${t('useTemplate')}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
+
+// 10. Modern Public Verification View (Matches Screenshot 1 - Super Admin Restricted)
 async function renderVerify(container, initialHash = '') {
+    // Restrict access: Remove redundant verification from customer dashboard and restrict to super admin access only
+    const isAdmin = state.user && ['ADMIN', 'SUPER_ADMIN', 'MASTER_ADMIN'].includes(state.user.role);
+    if (state.user && !isAdmin && !initialHash) {
+        container.innerHTML = `
+            <div class="container py-5 text-center" style="max-width: 620px;">
+                <div class="card p-5 border-0 shadow-sm bg-card rounded-4">
+                    <div class="brand-icon mx-auto mb-3 text-warning fs-1"><i class="fa-solid fa-shield-halved"></i></div>
+                    <h4 class="fw-bold mb-2">Restricted Super Admin Feature</h4>
+                    <p class="text-muted small mb-4">
+                        Direct document ledger verification has been restricted to Super Admin administrators to preserve institutional security.
+                        Customer signatories can view cryptographic certificate seals directly from executed document history.
+                    </p>
+                    <a href="#/dashboard" class="btn btn-pill btn-pill-primary px-4"><i class="fa-solid fa-arrow-left me-1"></i> Return to Dashboard</a>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
     container.innerHTML = `
         <div class="container py-4" style="max-width: 880px;">
             <!-- Header Badge & Status (Matches Screenshot 1) -->

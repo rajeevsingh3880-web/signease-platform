@@ -58,7 +58,7 @@ public class User {
     private LocalDateTime updatedAt;
 
     public enum Role {
-        ADMIN, SIGNER, VIEWER
+        MASTER_ADMIN, COMPANY_ADMIN, CUSTOMER_ADMIN, CLIENT, ADMIN, SIGNER, VIEWER
     }
 
     public String getFullName() {
