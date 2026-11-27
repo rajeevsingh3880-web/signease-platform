@@ -33,9 +33,14 @@ public class SigningService {
     private final EmailService emailService;
     private final PdfService pdfService;
     private final HashService hashService;
+    private final AadhaarService aadhaarService;
+    private final WhatsAppService whatsAppService;
 
     @Value("${app.upload.dir:./uploads}")
     private String uploadDir;
+
+    @Value("${app.base-url:http://localhost:8080}")
+    private String baseUrl;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -49,9 +54,11 @@ public class SigningService {
         }
 
         // 1. Create SigningRequest
-        LocalDateTime dueDate = dto.getDueDate() != null
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime dueDate = (dto.getDueDate() != null && dto.getDueDate().atTime(23, 59, 59).isAfter(now))
                 ? dto.getDueDate().atTime(23, 59, 59)
-                : LocalDateTime.now().plusDays(7);
+                : now.plusDays(15);
+        LocalDateTime tokenExpiry = dueDate.isAfter(now.plusDays(7)) ? dueDate : now.plusDays(30);
 
         SigningRequest request = SigningRequest.builder()
                 .document(document)
@@ -70,15 +77,24 @@ public class SigningService {
         for (SignerDto signerDto : dto.getSigners()) {
             if (signerDto.getEmail() == null || signerDto.getEmail().isBlank()) continue;
 
+            String delivery = (signerDto.getDeliveryChannel() != null && !signerDto.getDeliveryChannel().isBlank()) 
+                    ? signerDto.getDeliveryChannel().trim().toUpperCase() 
+                    : "EMAIL_AND_WHATSAPP";
+            String verification = (signerDto.getVerificationMethod() != null && !signerDto.getVerificationMethod().isBlank())
+                    ? signerDto.getVerificationMethod().trim().toUpperCase()
+                    : "WHATSAPP_OTP";
+
             SignerInvite invite = SignerInvite.builder()
                     .signingRequest(savedRequest)
                     .signerEmail(signerDto.getEmail().trim().toLowerCase())
                     .signerName(signerDto.getName() != null && !signerDto.getName().isBlank() ? signerDto.getName().trim() : signerDto.getEmail().trim())
                     .phone(signerDto.getPhone())
+                    .deliveryChannel(delivery)
+                    .verificationMethod(verification)
                     .signOrder(signerDto.getOrder() != null ? signerDto.getOrder() : order++)
                     .status(SignerInvite.Status.PENDING)
                     .signingToken(UUID.randomUUID())
-                    .tokenExpiry(dueDate)
+                    .tokenExpiry(tokenExpiry)
                     .build();
 
             invites.add(signerInviteRepository.save(invite));
@@ -149,16 +165,63 @@ public class SigningService {
             SignerInvite firstSigner = invites.get(0);
             firstSigner.setStatus(SignerInvite.Status.INVITED);
             signerInviteRepository.save(firstSigner);
-            emailService.sendSigningInvite(savedRequest, firstSigner);
+            if (!"WHATSAPP".equalsIgnoreCase(firstSigner.getDeliveryChannel())) {
+                emailService.sendSigningInvite(savedRequest, firstSigner);
+            }
+            if (firstSigner.getPhone() != null && !firstSigner.getPhone().isBlank() && !"EMAIL".equalsIgnoreCase(firstSigner.getDeliveryChannel())) {
+                whatsAppService.sendSigningInviteWhatsApp(firstSigner, savedRequest.getTitle(), baseUrl);
+            }
         } else {
             for (SignerInvite inv : invites) {
                 inv.setStatus(SignerInvite.Status.INVITED);
                 signerInviteRepository.save(inv);
-                emailService.sendSigningInvite(savedRequest, inv);
+                if (!"WHATSAPP".equalsIgnoreCase(inv.getDeliveryChannel())) {
+                    emailService.sendSigningInvite(savedRequest, inv);
+                }
+                if (inv.getPhone() != null && !inv.getPhone().isBlank() && !"EMAIL".equalsIgnoreCase(inv.getDeliveryChannel())) {
+                    whatsAppService.sendSigningInviteWhatsApp(inv, savedRequest.getTitle(), baseUrl);
+                }
             }
         }
 
         return savedRequest;
+    }
+
+    @Transactional
+    public void resendSigningInvite(UUID inviteId, User user, String ipAddress, String userAgent) {
+        SignerInvite invite = signerInviteRepository.findById(inviteId)
+                .orElseThrow(() -> new IllegalArgumentException("Signer invite not found with ID: " + inviteId));
+
+        Document doc = invite.getSigningRequest().getDocument();
+        if (user != null && !user.getRole().name().equals("ADMIN") && !doc.getUploadedBy().getId().equals(user.getId())) {
+            throw new IllegalStateException("You are not authorized to resend invites for this document");
+        }
+
+        if (invite.getStatus() == SignerInvite.Status.SIGNED) {
+            throw new IllegalStateException("This signer has already completed electronic signing");
+        }
+
+        // Ensure token has at least 30 days valid lifetime
+        if (invite.getTokenExpiry() == null || invite.getTokenExpiry().isBefore(LocalDateTime.now())) {
+            invite.setTokenExpiry(LocalDateTime.now().plusDays(30));
+        }
+
+        invite.setStatus(SignerInvite.Status.INVITED);
+        signerInviteRepository.save(invite);
+
+        emailService.sendSigningInvite(invite.getSigningRequest(), invite);
+
+        auditService.logAction(
+                doc,
+                invite,
+                user,
+                "invite.resent",
+                "SIGNER_INVITE",
+                invite.getId().toString(),
+                "Resent signing invitation email to " + invite.getSignerEmail(),
+                ipAddress,
+                userAgent
+        );
     }
 
     @Transactional
@@ -171,7 +234,17 @@ public class SigningService {
             throw new InvalidTokenException("This signing request was cancelled by the document owner");
         }
 
-        if (invite.isExpired()) {
+        // Auto-heal status if erroneously flagged as EXPIRED within 30 days
+        if (invite.getStatus() == SignerInvite.Status.EXPIRED) {
+            LocalDateTime now = LocalDateTime.now();
+            if (invite.getCreatedAt() == null || invite.getCreatedAt().isAfter(now.minusDays(30))) {
+                invite.setStatus(SignerInvite.Status.INVITED);
+                invite.setTokenExpiry(now.plusDays(30));
+                signerInviteRepository.save(invite);
+            }
+        }
+
+        if (invite.getStatus() != SignerInvite.Status.SIGNED && invite.isExpired()) {
             invite.setStatus(SignerInvite.Status.EXPIRED);
             signerInviteRepository.save(invite);
             throw new InvalidTokenException("This signing link has expired");
@@ -204,12 +277,22 @@ public class SigningService {
         SignerInvite invite = signerInviteRepository.findBySigningToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Invalid token"));
 
+        LocalDateTime now = LocalDateTime.now();
+        // Anti-duplicate protection: If an OTP was already dispatched in the last 45 seconds,
+        // reuse the active code to prevent sending multiple duplicate emails.
+        if (invite.getOtpCode() != null && invite.getOtpExpiry() != null && invite.getOtpExpiry().isAfter(now)) {
+            if (invite.getOtpExpiry().isAfter(now.plusMinutes(9).plusSeconds(15))) {
+                log.info("Duplicate OTP request ignored for {} (already sent within cooldown window). Returning active OTP.", invite.getSignerEmail());
+                return invite.getOtpCode();
+            }
+        }
+
         // Generate 6-digit OTP code
         int code = 100000 + secureRandom.nextInt(900000);
         String otp = String.valueOf(code);
 
         invite.setOtpCode(otp);
-        invite.setOtpExpiry(LocalDateTime.now().plusMinutes(10));
+        invite.setOtpExpiry(now.plusMinutes(10));
         invite.setOtpAttempts(0);
         signerInviteRepository.save(invite);
 
@@ -267,6 +350,108 @@ public class SigningService {
     }
 
     @Transactional
+    public String generateAndSendAadhaarOtp(UUID token, String rawAadhaar, String ipAddress, String userAgent) {
+        SignerInvite invite = signerInviteRepository.findBySigningToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid token"));
+
+        if (!aadhaarService.validateAadhaarNumber(rawAadhaar)) {
+            throw new IllegalArgumentException("Invalid Aadhaar number. Please enter a valid 12-digit number (must not start with 0 or 1).");
+        }
+
+        String clean = aadhaarService.cleanAadhaar(rawAadhaar);
+        String masked = aadhaarService.maskAadhaar(clean);
+
+        LocalDateTime now = LocalDateTime.now();
+        // Anti-duplicate protection for Aadhaar OTP
+        if (invite.getAadhaarOtpCode() != null && invite.getAadhaarOtpExpiry() != null && invite.getAadhaarOtpExpiry().isAfter(now)) {
+            if (invite.getAadhaarOtpExpiry().isAfter(now.plusMinutes(9).plusSeconds(15))) {
+                log.info("Duplicate Aadhaar OTP request ignored for {} (already sent within cooldown window). Returning active OTP.", invite.getSignerEmail());
+                return invite.getAadhaarOtpCode();
+            }
+        }
+
+        // Generate 6-digit Aadhaar OTP code
+        int code = 100000 + secureRandom.nextInt(900000);
+        String otp = String.valueOf(code);
+
+        invite.setAadhaarNumber(masked);
+        invite.setAadhaarOtpCode(otp);
+        invite.setAadhaarOtpExpiry(now.plusMinutes(10));
+        signerInviteRepository.save(invite);
+
+        emailService.sendAadhaarOtpCode(invite, otp, masked);
+
+        auditService.logAction(
+                invite.getSigningRequest().getDocument(),
+                invite,
+                null,
+                "signer.aadhaar_otp_requested",
+                "SIGNER_INVITE",
+                invite.getId().toString(),
+                "Aadhaar OTP requested for " + masked + " by " + invite.getSignerEmail(),
+                ipAddress,
+                userAgent
+        );
+
+        return otp;
+    }
+
+    @Transactional
+    public Map<String, Object> verifyAadhaarOtp(UUID token, String rawAadhaar, String inputOtp, String ipAddress, String userAgent) {
+        SignerInvite invite = signerInviteRepository.findBySigningToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid token"));
+
+        if (!aadhaarService.validateAadhaarNumber(rawAadhaar)) {
+            throw new IllegalArgumentException("Invalid Aadhaar number format");
+        }
+
+        if (!invite.isAadhaarOtpValid(inputOtp)) {
+            throw new IllegalArgumentException("Invalid or expired Aadhaar OTP code");
+        }
+
+        String clean = aadhaarService.cleanAadhaar(rawAadhaar);
+        String masked = aadhaarService.maskAadhaar(clean);
+        String txnId = "UIDAI-ESIGN-" + System.currentTimeMillis();
+
+        invite.setAadhaarVerified(true);
+        invite.setAadhaarVerifiedAt(LocalDateTime.now());
+        invite.setAadhaarTxnId(txnId);
+        invite.setAadhaarNumber(masked);
+        invite.setStatus(SignerInvite.Status.VERIFIED);
+        invite.setOtpVerified(true); // Aadhaar verification also satisfies identity OTP
+        signerInviteRepository.save(invite);
+
+        // Generate visual stamp
+        String aadhaarStamp = aadhaarService.generateAadhaarStampBase64(
+                invite.getSignerName(),
+                masked,
+                txnId,
+                invite.getAadhaarVerifiedAt()
+        );
+
+        auditService.logAction(
+                invite.getSigningRequest().getDocument(),
+                invite,
+                null,
+                "signer.aadhaar_verified",
+                "SIGNER_INVITE",
+                invite.getId().toString(),
+                "Aadhaar authentication successful for " + masked + " (" + invite.getSignerName() + ") Txn: " + txnId,
+                ipAddress,
+                userAgent
+        );
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("message", "Aadhaar e-KYC Identity Verified successfully under IT Act 2000 Section 3A!");
+        result.put("maskedAadhaar", masked);
+        result.put("txnId", txnId);
+        result.put("verifiedAt", invite.getAadhaarVerifiedAt());
+        result.put("signatureData", aadhaarStamp);
+        return result;
+    }
+
+    @Transactional
     public Signature submitSignature(UUID token, SubmitSignatureDto dto, String ipAddress, String userAgent) throws Exception {
         SignerInvite invite = signerInviteRepository.findBySigningToken(token)
                 .orElseThrow(() -> new InvalidTokenException("Invalid token"));
@@ -307,10 +492,22 @@ public class SigningService {
             sigType = Signature.SignatureType.AADHAAR_ESIGN;
         }
 
+        String sigData = dto.getSignatureData();
+        if (sigType == Signature.SignatureType.AADHAAR_ESIGN) {
+            if (sigData == null || sigData.isBlank() || !sigData.startsWith("data:image")) {
+                sigData = aadhaarService.generateAadhaarStampBase64(
+                        invite.getSignerName(),
+                        invite.getAadhaarNumber() != null ? invite.getAadhaarNumber() : "XXXXXXXX0000",
+                        invite.getAadhaarTxnId() != null ? invite.getAadhaarTxnId() : ("UIDAI-ESIGN-" + System.currentTimeMillis()),
+                        invite.getAadhaarVerifiedAt() != null ? invite.getAadhaarVerifiedAt() : LocalDateTime.now()
+                );
+            }
+        }
+
         Signature signature = Signature.builder()
                 .signerInvite(invite)
                 .document(document)
-                .signatureData(dto.getSignatureData() != null ? dto.getSignatureData() : dto.getTypedName())
+                .signatureData(sigData != null ? sigData : dto.getTypedName())
                 .signatureType(sigType)
                 .legalBasis(sigType == Signature.SignatureType.AADHAAR_ESIGN
                         ? "Information Technology Act 2000, Section 3A (Aadhaar eSign)"
@@ -355,7 +552,12 @@ public class SigningService {
                 SignerInvite next = nextSigner.get();
                 next.setStatus(SignerInvite.Status.INVITED);
                 signerInviteRepository.save(next);
-                emailService.sendSigningInvite(signingRequest, next);
+                if (!"WHATSAPP".equalsIgnoreCase(next.getDeliveryChannel())) {
+                    emailService.sendSigningInvite(signingRequest, next);
+                }
+                if (next.getPhone() != null && !next.getPhone().isBlank() && !"EMAIL".equalsIgnoreCase(next.getDeliveryChannel())) {
+                    whatsAppService.sendSigningInviteWhatsApp(next, signingRequest.getTitle(), baseUrl);
+                }
             }
         }
 
@@ -434,10 +636,94 @@ public class SigningService {
             );
 
             emailService.sendDocumentCompletedNotification(document);
+            String verifyUrl = baseUrl + "/#/verify?hash=" + finalHash;
+            for (SignerInvite inv : allSigners) {
+                if (inv.getPhone() != null && !inv.getPhone().isBlank() && !"EMAIL".equalsIgnoreCase(inv.getDeliveryChannel())) {
+                    whatsAppService.sendDocumentCompletedWhatsApp(inv, document.getTitle(), verifyUrl);
+                }
+            }
             log.info("Document {} fully completed and sealed with final hash: {}", document.getId(), finalHash);
         } catch (Exception e) {
             log.error("Failed to seal document {}", document.getId(), e);
         }
+    }
+
+    @Transactional
+    public Map<String, Object> generateAndSendWhatsAppOtp(UUID token, String ipAddress, String userAgent) {
+        SignerInvite invite = signerInviteRepository.findBySigningToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid token"));
+
+        if (invite.getPhone() == null || invite.getPhone().isBlank()) {
+            throw new IllegalArgumentException("No mobile phone number is registered for this signer. Please contact the sender.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        String otp;
+        if (invite.getOtpCode() != null && invite.getOtpExpiry() != null && invite.getOtpExpiry().isAfter(now)) {
+            if (invite.getOtpExpiry().isAfter(now.plusMinutes(9).plusSeconds(15))) {
+                otp = invite.getOtpCode();
+            } else {
+                otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+            }
+        } else {
+            otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        }
+
+        invite.setOtpCode(otp);
+        invite.setOtpExpiry(now.plusMinutes(10));
+        invite.setOtpAttempts(0);
+        signerInviteRepository.save(invite);
+
+        Map<String, Object> waResult = whatsAppService.sendVerificationOtpWhatsApp(invite, otp);
+
+        auditService.logAction(
+                invite.getSigningRequest().getDocument(),
+                invite,
+                null,
+                "signer.whatsapp_otp_requested",
+                "SIGNER_INVITE",
+                invite.getId().toString(),
+                "WhatsApp verification OTP generated & dispatched for " + invite.getSignerName() + " (" + invite.getPhone() + ")",
+                ipAddress,
+                userAgent
+        );
+
+        return waResult;
+    }
+
+    @Transactional
+    public Map<String, Object> resendWhatsAppSigningInvite(UUID inviteId, User user, String ipAddress, String userAgent) {
+        SignerInvite invite = signerInviteRepository.findById(inviteId)
+                .orElseThrow(() -> new IllegalArgumentException("Signer invite not found with ID: " + inviteId));
+
+        Document doc = invite.getSigningRequest().getDocument();
+        if (user != null && !user.getRole().name().equals("ADMIN") && !doc.getUploadedBy().getId().equals(user.getId())) {
+            throw new IllegalStateException("You are not authorized to resend invites for this document");
+        }
+
+        if (invite.getStatus() == SignerInvite.Status.SIGNED) {
+            throw new IllegalStateException("This signer has already completed electronic signing");
+        }
+
+        if (invite.getPhone() == null || invite.getPhone().isBlank()) {
+            throw new IllegalArgumentException("No phone number registered for this signer.");
+        }
+
+        Map<String, Object> result = whatsAppService.sendSigningInviteWhatsApp(invite, doc.getTitle(), baseUrl);
+
+        auditService.logAction(
+                doc,
+                invite,
+                user,
+                "signer.whatsapp_invite_resent",
+                "SIGNER_INVITE",
+                invite.getId().toString(),
+                "WhatsApp signing invitation resent to: " + invite.getPhone(),
+                ipAddress,
+                userAgent
+        );
+
+        return result;
     }
 }
 

@@ -106,6 +106,8 @@ public class ApiSigningController {
             resp.put("signerName", invite.getSignerName());
             resp.put("signerEmail", invite.getSignerEmail());
             resp.put("signerPhone", invite.getPhone());
+            resp.put("deliveryChannel", invite.getDeliveryChannel() != null ? invite.getDeliveryChannel() : "EMAIL_AND_WHATSAPP");
+            resp.put("verificationMethod", invite.getVerificationMethod() != null ? invite.getVerificationMethod() : "WHATSAPP_OTP");
             resp.put("signerStatus", invite.getStatus());
             resp.put("otpVerified", invite.getOtpVerified());
             resp.put("aadhaarVerified", invite.getAadhaarVerified());
@@ -154,6 +156,42 @@ public class ApiSigningController {
                 resp.put("testOtp", otp); // Convenient for rapid dev testing
             }
             return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/whatsapp-otp/{token}")
+    public ResponseEntity<?> requestWhatsAppOtp(@PathVariable("token") UUID token,
+                                                HttpServletRequest request) {
+        try {
+            String ip = request.getRemoteAddr();
+            String userAgent = request.getHeader("User-Agent");
+            Map<String, Object> result = signingService.generateAndSendWhatsAppOtp(token, ip, userAgent);
+
+            Map<String, Object> resp = new HashMap<>(result);
+            if (exposeTestOtp) {
+                SignerInvite invite = signingService.accessSigningPage(token, ip, userAgent);
+                resp.put("testOtp", invite.getOtpCode());
+            }
+            return ResponseEntity.ok(resp);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/invites/{id}/whatsapp-invite")
+    public ResponseEntity<?> sendWhatsAppInvite(@PathVariable("id") UUID inviteId,
+                                                HttpServletRequest request) {
+        try {
+            User user = authService.getCurrentUser()
+                    .orElseThrow(() -> new IllegalStateException("Unauthorized. Please provide valid Bearer token."));
+
+            Map<String, Object> result = signingService.resendWhatsAppSigningInvite(
+                    inviteId, user, request.getRemoteAddr(), request.getHeader("User-Agent")
+            );
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("success", false, "error", e.getMessage()));
         }

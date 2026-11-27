@@ -14,5 +14,7 @@ public class SignerDto {
     private String email;
     private String phone;
     private Integer order;
+    private String deliveryChannel;
+    private String verificationMethod;
 }
 

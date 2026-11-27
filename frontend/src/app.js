@@ -139,6 +139,36 @@ window.resendInvite = async function(inviteId, event) {
     }
 };
 
+// Global WhatsApp Invite Helper
+window.sendWhatsAppInvite = async function(inviteId, phone, token, event) {
+    if (event) {
+        event.preventDefault();
+        const btn = event.currentTarget;
+        const oldHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Sending...';
+        try {
+            const res = await api.resendWhatsAppInvite(inviteId);
+            showToast(res.message || 'WhatsApp signing invite dispatched successfully!');
+            btn.innerHTML = '<i class="fa-solid fa-check text-success me-1"></i> Dispatched!';
+            if (res.whatsappUrl) {
+                window.open(res.whatsappUrl, '_blank');
+            } else if (phone && token) {
+                const text = encodeURIComponent(`Hello! Please review and sign your document on SignEase: ${window.location.origin}/#/sign/${token}`);
+                window.open(`https://api.whatsapp.com/send?phone=${phone.replace(/[^0-9]/g, '')}&text=${text}`, '_blank');
+            }
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = oldHtml;
+            }, 4000);
+        } catch (err) {
+            btn.disabled = false;
+            btn.innerHTML = oldHtml;
+            showToast(err.message, 'danger');
+        }
+    }
+};
+
 // Theme Mode Management (Dark & Light Mode)
 export function getTheme() {
     return localStorage.getItem('signease_theme') || 'light';
@@ -653,6 +683,21 @@ function renderRegister(container) {
                         <div id="regPassAlert" class="small mt-1 text-danger"></div>
                     </div>
 
+                    <!-- Confirm Password with Real-time Match Confirmation -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold text-muted mb-0">${t('confirmPassword')} *</label>
+                            <span id="regPassMatchBadge" class="small fw-semibold"></span>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="regConfirmPass" class="form-control" placeholder="Re-enter password to confirm" required autocomplete="new-password">
+                            <button type="button" class="btn btn-outline-secondary" id="toggleRegConfirmPassBtn" title="Show / Hide Password">
+                                <i class="fa-solid fa-eye" id="toggleRegConfirmEyeIcon"></i>
+                            </button>
+                        </div>
+                        <div id="regConfirmPassAlert" class="small mt-1"></div>
+                    </div>
+
                     <button type="submit" id="submitRegBtn" class="btn btn-pill btn-pill-primary w-100 py-2 fw-semibold mb-3 justify-content-center shadow-sm">
                         <i class="fa-solid fa-user-plus me-1"></i> ${t('btnCreateAccount')}
                     </button>
@@ -784,11 +829,51 @@ function renderRegister(container) {
         return (hasLength && hasLetters && hasNumbers && hasSymbols);
     };
 
+    const confirmPassInput = document.getElementById('regConfirmPass');
+    const checkPasswordMatch = () => {
+        const pass = passInput ? passInput.value : '';
+        const confirm = confirmPassInput ? confirmPassInput.value : '';
+        const badgeEl = document.getElementById('regPassMatchBadge');
+        const alertEl = document.getElementById('regConfirmPassAlert');
+
+        if (!confirm) {
+            if (badgeEl) badgeEl.innerHTML = '';
+            if (alertEl) alertEl.innerHTML = '';
+            if (confirmPassInput) confirmPassInput.classList.remove('is-valid', 'is-invalid');
+            return false;
+        }
+
+        if (pass === confirm && pass.length > 0) {
+            if (badgeEl) badgeEl.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-circle-check me-1"></i> ${t('passwordsMatch')}</span>`;
+            if (alertEl) alertEl.innerHTML = `<span class="text-success small fw-medium"><i class="fa-solid fa-circle-check me-1"></i> Passwords match correctly!</span>`;
+            if (confirmPassInput) {
+                confirmPassInput.classList.remove('is-invalid');
+                confirmPassInput.classList.add('is-valid');
+            }
+            return true;
+        } else {
+            if (badgeEl) badgeEl.innerHTML = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="fa-solid fa-circle-xmark me-1"></i> ${t('passwordsDoNotMatch')}</span>`;
+            if (alertEl) alertEl.innerHTML = `<span class="text-danger small fw-medium"><i class="fa-solid fa-triangle-exclamation me-1"></i> Passwords do not match. Please verify your typing.</span>`;
+            if (confirmPassInput) {
+                confirmPassInput.classList.remove('is-valid');
+                confirmPassInput.classList.add('is-invalid');
+            }
+            return false;
+        }
+    };
+
     if (passInput) {
         passInput.oninput = () => {
             checkPasswordStrength(passInput.value);
+            checkPasswordMatch();
             const alertEl = document.getElementById('regPassAlert');
             if (alertEl) alertEl.innerHTML = '';
+        };
+    }
+
+    if (confirmPassInput) {
+        confirmPassInput.oninput = () => {
+            checkPasswordMatch();
         };
     }
 
@@ -799,6 +884,17 @@ function renderRegister(container) {
             const isPass = passInput.type === 'password';
             passInput.type = isPass ? 'text' : 'password';
             const eye = document.getElementById('togglePassEyeIcon');
+            if (eye) eye.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
+        };
+    }
+
+    // Toggle Show / Hide Confirm Password
+    const toggleRegConfirmPassBtn = document.getElementById('toggleRegConfirmPassBtn');
+    if (toggleRegConfirmPassBtn && confirmPassInput) {
+        toggleRegConfirmPassBtn.onclick = () => {
+            const isPass = confirmPassInput.type === 'password';
+            confirmPassInput.type = isPass ? 'text' : 'password';
+            const eye = document.getElementById('toggleRegConfirmEyeIcon');
             if (eye) eye.className = isPass ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye';
         };
     }
@@ -825,7 +921,15 @@ function renderRegister(container) {
             const eye = document.getElementById('togglePassEyeIcon');
             if (eye) eye.className = 'fa-solid fa-eye-slash';
 
+            if (confirmPassInput) {
+                confirmPassInput.value = generated;
+                confirmPassInput.type = 'text';
+                const confirmEye = document.getElementById('toggleRegConfirmEyeIcon');
+                if (confirmEye) confirmEye.className = 'fa-solid fa-eye-slash';
+            }
+
             checkPasswordStrength(generated);
+            checkPasswordMatch();
             const alertEl = document.getElementById('regPassAlert');
             if (alertEl) alertEl.innerHTML = '';
 
@@ -838,7 +942,7 @@ function renderRegister(container) {
                     }
                 }).catch(() => {});
             }
-            showToast('Strong password suggested and applied!');
+            showToast('Strong password suggested and applied to both fields!');
         };
     }
 
@@ -847,6 +951,7 @@ function renderRegister(container) {
         const email = document.getElementById('regEmail').value.trim();
         const otpCode = document.getElementById('regOtpCode').value.trim();
         const password = document.getElementById('regPass').value;
+        const confirmPassword = confirmPassInput ? confirmPassInput.value : '';
 
         const isStrong = checkPasswordStrength(password);
         if (!isStrong) {
@@ -855,6 +960,14 @@ function renderRegister(container) {
                 Password must be at least 8 characters and include letters, numbers, and special symbols.
             `;
             document.getElementById('regPass').focus();
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            document.getElementById('regConfirmPassAlert').innerHTML = `
+                <span class="text-danger small fw-medium"><i class="fa-solid fa-triangle-exclamation me-1"></i> Passwords do not match. Please ensure both fields are identical.</span>
+            `;
+            confirmPassInput.focus();
             return;
         }
 
@@ -984,9 +1097,12 @@ function renderForgotPassword(container) {
 
                         <!-- Confirm New Password -->
                         <div class="mb-4">
-                            <label class="form-label small fw-semibold text-muted">Confirm New Password *</label>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-semibold text-muted mb-0">Confirm New Password *</label>
+                                <span id="resetPassMatchBadge" class="small fw-semibold"></span>
+                            </div>
                             <input type="password" id="confirmResetPass" class="form-control" placeholder="Re-enter new password" required autocomplete="new-password">
-                            <div id="confirmPassAlert" class="small mt-1 text-danger"></div>
+                            <div id="confirmPassAlert" class="small mt-1"></div>
                         </div>
 
                         <button type="submit" id="submitResetBtn" class="btn btn-pill btn-pill-primary w-100 py-2 fw-semibold mb-3 justify-content-center shadow-sm">
@@ -1106,11 +1222,51 @@ function renderForgotPassword(container) {
         return (hasLength && hasLetters && hasNumbers && hasSymbols);
     };
 
+    const confirmResetInput = document.getElementById('confirmResetPass');
+    const checkResetPasswordMatch = () => {
+        const pass = passInput ? passInput.value : '';
+        const confirm = confirmResetInput ? confirmResetInput.value : '';
+        const badgeEl = document.getElementById('resetPassMatchBadge');
+        const alertEl = document.getElementById('confirmPassAlert');
+
+        if (!confirm) {
+            if (badgeEl) badgeEl.innerHTML = '';
+            if (alertEl) alertEl.innerHTML = '';
+            if (confirmResetInput) confirmResetInput.classList.remove('is-valid', 'is-invalid');
+            return false;
+        }
+
+        if (pass === confirm && pass.length > 0) {
+            if (badgeEl) badgeEl.innerHTML = `<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="fa-solid fa-circle-check me-1"></i> ${t('passwordsMatch')}</span>`;
+            if (alertEl) alertEl.innerHTML = `<span class="text-success small fw-medium"><i class="fa-solid fa-circle-check me-1"></i> Passwords match correctly!</span>`;
+            if (confirmResetInput) {
+                confirmResetInput.classList.remove('is-invalid');
+                confirmResetInput.classList.add('is-valid');
+            }
+            return true;
+        } else {
+            if (badgeEl) badgeEl.innerHTML = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="fa-solid fa-circle-xmark me-1"></i> ${t('passwordsDoNotMatch')}</span>`;
+            if (alertEl) alertEl.innerHTML = `<span class="text-danger small fw-medium"><i class="fa-solid fa-triangle-exclamation me-1"></i> Passwords do not match. Please verify your typing.</span>`;
+            if (confirmResetInput) {
+                confirmResetInput.classList.remove('is-valid');
+                confirmResetInput.classList.add('is-invalid');
+            }
+            return false;
+        }
+    };
+
     if (passInput) {
         passInput.oninput = () => {
             checkPasswordStrength(passInput.value);
+            checkResetPasswordMatch();
             const alertEl = document.getElementById('resetPassAlert');
             if (alertEl) alertEl.innerHTML = '';
+        };
+    }
+
+    if (confirmResetInput) {
+        confirmResetInput.oninput = () => {
+            checkResetPasswordMatch();
         };
     }
 
@@ -1151,6 +1307,7 @@ function renderForgotPassword(container) {
             if (confirmInput) confirmInput.value = generated;
 
             checkPasswordStrength(generated);
+            checkResetPasswordMatch();
             const alertEl = document.getElementById('resetPassAlert');
             if (alertEl) alertEl.innerHTML = '';
 
@@ -2328,7 +2485,7 @@ async function renderDocumentDetails(container, id) {
                                         <td class="ps-3 fw-bold text-muted">#${s.signOrder}</td>
                                         <td>
                                             <div class="fw-bold">${s.name}</div>
-                                            <div class="small text-muted">${s.email}</div>
+                                            <div class="small text-muted">${s.email}${s.phone ? ` &bull; <i class="fa-brands fa-whatsapp text-success"></i> ${s.phone}` : ''}</div>
                                         </td>
                                         <td><span class="badge rounded-pill px-2 py-1 badge-status-${s.status}">${s.status}</span></td>
                                         <td>${s.otpVerified ? '<span class="badge bg-success-subtle text-success"><i class="fa-solid fa-check me-1"></i> Verified</span>' : '<span class="badge bg-light text-muted">Pending</span>'}</td>
@@ -2340,7 +2497,10 @@ async function renderDocumentDetails(container, id) {
                                                         <i class="fa-regular fa-copy me-1"></i> Copy Link
                                                     </button>
                                                     <button type="button" class="btn btn-outline-primary" onclick="window.resendInvite('${s.id}', event)" title="Resend email invite via Gmail">
-                                                        <i class="fa-solid fa-paper-plane me-1"></i> Resend Email
+                                                        <i class="fa-solid fa-paper-plane me-1"></i> Email
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-success" onclick="window.sendWhatsAppInvite('${s.id}', '${s.phone || ''}', '${s.signingToken}', event)" title="Send/Resend invite via WhatsApp">
+                                                        <i class="fa-brands fa-whatsapp me-1"></i> WhatsApp
                                                     </button>
                                                     <a href="#/sign/${s.signingToken}" target="_blank" class="btn btn-primary" title="Open signing portal">
                                                         <i class="fa-solid fa-arrow-up-right-from-square me-1"></i> Open
@@ -2498,14 +2658,14 @@ async function renderSend(container, docId) {
                         <!-- Dynamic Signers Container -->
                         <div id="dynamicSignersList">
                             <!-- Signer Row 1 -->
-                            <div class="signer-input-row">
-                                <div class="row g-2 align-items-center">
+                            <div class="signer-input-row p-3 mb-3 border rounded-3 bg-card shadow-xs">
+                                <div class="row g-2 align-items-center mb-2">
                                     <div class="col-md-4">
-                                        <div class="meta-box-label"><i class="fa-regular fa-user"></i> ${t('signerName')}</div>
+                                        <div class="meta-box-label"><i class="fa-regular fa-user"></i> ${t('signerName')} *</div>
                                         <input type="text" class="form-control s-name" placeholder="e.g. Sarah Jenkins" value="Sarah Jenkins" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="meta-box-label"><i class="fa-regular fa-envelope"></i> ${t('emailAddress')}</div>
+                                        <div class="meta-box-label"><i class="fa-regular fa-envelope"></i> ${t('emailAddress')} *</div>
                                         <input type="email" class="form-control s-email" placeholder="name@company.com" value="s.jenkins@acmecorp.io" required>
                                     </div>
                                     <div class="col-md-3">
@@ -2519,6 +2679,28 @@ async function renderSend(container, docId) {
                                         <button type="button" class="btn btn-link text-danger p-1" onclick="this.closest('.signer-input-row').remove()" title="Delete">
                                             <i class="fa-regular fa-trash-can"></i>
                                         </button>
+                                    </div>
+                                </div>
+                                <div class="row g-2 align-items-center pt-2 border-top border-light-subtle">
+                                    <div class="col-md-4">
+                                        <div class="meta-box-label text-success"><i class="fa-brands fa-whatsapp"></i> WhatsApp Mobile</div>
+                                        <input type="tel" class="form-control s-phone" placeholder="e.g. +91 98765 43210" value="+91 98765 43210">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="meta-box-label"><i class="fa-solid fa-paper-plane"></i> Delivery Channel</div>
+                                        <select class="form-select s-channel">
+                                            <option value="EMAIL_AND_WHATSAPP" selected>Email &amp; WhatsApp</option>
+                                            <option value="WHATSAPP">WhatsApp Only</option>
+                                            <option value="EMAIL">Email Only</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="meta-box-label"><i class="fa-solid fa-shield-halved"></i> Verification Option</div>
+                                        <select class="form-select s-verif">
+                                            <option value="WHATSAPP_OTP" selected>WhatsApp OTP</option>
+                                            <option value="EMAIL_OTP">Email OTP</option>
+                                            <option value="AADHAAR_ESIGN">Aadhaar e-Sign (UIDAI)</option>
+                                        </select>
                                     </div>
                                 </div>
                             </div>
@@ -2614,15 +2796,15 @@ async function renderSend(container, docId) {
             addBtn.onclick = () => {
                 const list = document.getElementById('dynamicSignersList');
                 const row = document.createElement('div');
-                row.className = 'signer-input-row';
+                row.className = 'signer-input-row p-3 mb-3 border rounded-3 bg-card shadow-xs';
                 row.innerHTML = `
-                    <div class="row g-2 align-items-center">
+                    <div class="row g-2 align-items-center mb-2">
                         <div class="col-md-4">
-                            <div class="meta-box-label"><i class="fa-regular fa-user"></i> ${t('signerName')}</div>
+                            <div class="meta-box-label"><i class="fa-regular fa-user"></i> ${t('signerName')} *</div>
                             <input type="text" class="form-control s-name" placeholder="e.g. Vikram Mehta" required>
                         </div>
                         <div class="col-md-4">
-                            <div class="meta-box-label"><i class="fa-regular fa-envelope"></i> ${t('emailAddress')}</div>
+                            <div class="meta-box-label"><i class="fa-regular fa-envelope"></i> ${t('emailAddress')} *</div>
                             <input type="email" class="form-control s-email" placeholder="name@company.com" required>
                         </div>
                         <div class="col-md-3">
@@ -2636,6 +2818,28 @@ async function renderSend(container, docId) {
                             <button type="button" class="btn btn-link text-danger p-1" onclick="this.closest('.signer-input-row').remove()" title="Delete">
                                 <i class="fa-regular fa-trash-can"></i>
                             </button>
+                        </div>
+                    </div>
+                    <div class="row g-2 align-items-center pt-2 border-top border-light-subtle">
+                        <div class="col-md-4">
+                            <div class="meta-box-label text-success"><i class="fa-brands fa-whatsapp"></i> WhatsApp Mobile</div>
+                            <input type="tel" class="form-control s-phone" placeholder="e.g. +91 98765 43210">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="meta-box-label"><i class="fa-solid fa-paper-plane"></i> Delivery Channel</div>
+                            <select class="form-select s-channel">
+                                <option value="EMAIL_AND_WHATSAPP" selected>Email &amp; WhatsApp</option>
+                                <option value="WHATSAPP">WhatsApp Only</option>
+                                <option value="EMAIL">Email Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="meta-box-label"><i class="fa-solid fa-shield-halved"></i> Verification Option</div>
+                            <select class="form-select s-verif">
+                                <option value="WHATSAPP_OTP" selected>WhatsApp OTP</option>
+                                <option value="EMAIL_OTP">Email OTP</option>
+                                <option value="AADHAAR_ESIGN">Aadhaar e-Sign (UIDAI)</option>
+                            </select>
                         </div>
                     </div>
                 `;
@@ -2673,6 +2877,9 @@ async function renderSend(container, docId) {
                     signers.push({
                         name: r.querySelector('.s-name').value.trim(),
                         email: r.querySelector('.s-email').value.trim(),
+                        phone: r.querySelector('.s-phone') ? r.querySelector('.s-phone').value.trim() : '',
+                        deliveryChannel: r.querySelector('.s-channel') ? r.querySelector('.s-channel').value : 'EMAIL_AND_WHATSAPP',
+                        verificationMethod: r.querySelector('.s-verif') ? r.querySelector('.s-verif').value : 'WHATSAPP_OTP',
                         role: r.querySelector('.s-role').value,
                         order: idx + 1
                     });
@@ -2696,10 +2903,10 @@ async function renderSend(container, docId) {
 
                 let linksMsg = '';
                 if (res.signers && res.signers.length > 0) {
-                    linksMsg = res.signers.map(s => `\n• ${s.name} (${s.email}):\n  ${window.location.origin}/#/sign/${s.token}`).join('\n');
+                    linksMsg = res.signers.map(s => `\n• ${s.name} (${s.email}${s.phone ? ' / ' + s.phone : ''}):\n  Signing Link: ${window.location.origin}/#/sign/${s.token}${s.whatsappUrl ? '\n  WhatsApp Invite: ' + s.whatsappUrl : ''}`).join('\n');
                 }
 
-                alert('✅ Agreement Dispatched Successfully! Signing invitations dispatched to signers via email.' + (linksMsg ? '\n\nDirect Signing Links (Copy to share):\n' + linksMsg : ''));
+                alert('✅ Agreement Dispatched Successfully!\nSigning invitations dispatched to recipients via configured channels (Email / WhatsApp).' + (linksMsg ? '\n\nDirect Signing Links & WhatsApp Invites:\n' + linksMsg : ''));
                 showToast('Agreement Dispatched Successfully! Invites sent.');
                 window.location.hash = `#/documents/${targetDocId}`;
             } catch (err) {
@@ -2787,12 +2994,17 @@ async function renderSignerPage(container, token) {
 
                     <!-- STEP 1: OTP Identity Check (FR-07) -->
                     <div class="p-3 mb-4 rounded-3 border ${ctx.otpVerified ? 'bg-success-subtle border-success' : 'bg-light'}" id="otpContainer">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <div>
                                 <span class="fw-bold small text-uppercase"><i class="fa-solid fa-shield-halved text-primary me-1"></i> Step 1: Identity Verification (OTP)</span>
                                 <div class="small text-muted" id="otpText">${ctx.otpVerified ? '<i class="fa-solid fa-circle-check text-success me-1"></i> Identity Verified via OTP' : t('otpNotice')}</div>
                             </div>
-                            ${!ctx.otpVerified ? `<button type="button" class="btn btn-sm btn-primary" id="getOtpBtn"><i class="fa-solid fa-paper-plane me-1"></i> ${t('btnGetOtp')}</button>` : ''}
+                            ${!ctx.otpVerified ? `
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="button" class="btn btn-sm btn-success fw-semibold" id="getWhatsAppOtpBtn"><i class="fa-brands fa-whatsapp me-1"></i> ${t('getWhatsAppOtp') || 'Get WhatsApp OTP'}</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary fw-semibold" id="getOtpBtn"><i class="fa-regular fa-envelope me-1"></i> ${t('emailOtp') || 'Get Email OTP'}</button>
+                                </div>
+                            ` : ''}
                         </div>
 
                         <div id="otpInputArea" class="mt-3 pt-3 border-top" style="display: none;">
@@ -2996,6 +3208,49 @@ async function renderSignerPage(container, token) {
                 r.readAsDataURL(this.files[0]);
             }
         };
+
+        // WhatsApp OTP Handler
+        const getWhatsAppOtpBtn = document.getElementById('getWhatsAppOtpBtn');
+        let waOtpCooldownTimer = null;
+        if (getWhatsAppOtpBtn) {
+            getWhatsAppOtpBtn.onclick = async () => {
+                if (getWhatsAppOtpBtn.disabled) return;
+                getWhatsAppOtpBtn.disabled = true;
+                getWhatsAppOtpBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Sending OTP...';
+
+                try {
+                    const r = await api.requestWhatsAppOtp(token);
+                    document.getElementById('otpInputArea').style.display = 'block';
+                    const otpInputField = document.getElementById('signerOtp');
+                    if (otpInputField) otpInputField.value = '';
+                    let waAction = '';
+                    if (r.whatsappUrl) {
+                        waAction = `<div class="mt-2"><a href="${r.whatsappUrl}" target="_blank" class="btn btn-sm btn-success"><i class="fa-brands fa-whatsapp me-1"></i> Open WhatsApp Web / App</a></div>`;
+                    }
+                    const otpNote = `<span class="text-success"><i class="fa-brands fa-whatsapp me-1"></i> ${r.message || 'Verification OTP code has been dispatched to your WhatsApp.'}<br><small class="text-muted"><i class="fa-solid fa-clock me-1"></i> Please check your WhatsApp messages. Valid for 10 minutes.</small></span>${waAction}`;
+                    document.getElementById('otpMsg').innerHTML = otpNote;
+                    showToast(r.message || 'OTP sent to your WhatsApp.');
+
+                    let timeLeft = 60;
+                    getWhatsAppOtpBtn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                    if (waOtpCooldownTimer) clearInterval(waOtpCooldownTimer);
+                    waOtpCooldownTimer = setInterval(() => {
+                        timeLeft--;
+                        if (timeLeft <= 0) {
+                            clearInterval(waOtpCooldownTimer);
+                            getWhatsAppOtpBtn.disabled = false;
+                            getWhatsAppOtpBtn.innerHTML = '<i class="fa-brands fa-whatsapp me-1"></i> Get WhatsApp OTP';
+                        } else {
+                            getWhatsAppOtpBtn.innerHTML = `<i class="fa-solid fa-clock me-1"></i> Resend (${timeLeft}s)`;
+                        }
+                    }, 1000);
+                } catch (err) {
+                    getWhatsAppOtpBtn.disabled = false;
+                    getWhatsAppOtpBtn.innerHTML = '<i class="fa-brands fa-whatsapp me-1"></i> Get WhatsApp OTP';
+                    showToast(err.message, 'danger');
+                }
+            };
+        }
 
         // OTP Handler with Anti-Duplicate Cooldown Guard
         const getOtpBtn = document.getElementById('getOtpBtn');

@@ -198,12 +198,24 @@ export const api = {
         });
     },
 
+    resendWhatsAppInvite(inviteId) {
+        return this.request(`/signing/invites/${inviteId}/whatsapp-invite`, {
+            method: 'POST'
+        });
+    },
+
     getSigningContext(token) {
         return this.request(`/signing/context/${token}`);
     },
 
     requestOtp(token) {
         return this.request(`/signing/otp/${token}`, {
+            method: 'POST'
+        });
+    },
+
+    requestWhatsAppOtp(token) {
+        return this.request(`/signing/whatsapp-otp/${token}`, {
             method: 'POST'
         });
     },

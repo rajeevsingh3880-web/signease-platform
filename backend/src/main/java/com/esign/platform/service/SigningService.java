@@ -34,9 +34,13 @@ public class SigningService {
     private final PdfService pdfService;
     private final HashService hashService;
     private final AadhaarService aadhaarService;
+    private final WhatsAppService whatsAppService;
 
     @Value("${app.upload.dir:./uploads}")
     private String uploadDir;
+
+    @Value("${app.base-url:http://localhost:8080}")
+    private String baseUrl;
 
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -73,11 +77,20 @@ public class SigningService {
         for (SignerDto signerDto : dto.getSigners()) {
             if (signerDto.getEmail() == null || signerDto.getEmail().isBlank()) continue;
 
+            String delivery = (signerDto.getDeliveryChannel() != null && !signerDto.getDeliveryChannel().isBlank()) 
+                    ? signerDto.getDeliveryChannel().trim().toUpperCase() 
+                    : "EMAIL_AND_WHATSAPP";
+            String verification = (signerDto.getVerificationMethod() != null && !signerDto.getVerificationMethod().isBlank())
+                    ? signerDto.getVerificationMethod().trim().toUpperCase()
+                    : "WHATSAPP_OTP";
+
             SignerInvite invite = SignerInvite.builder()
                     .signingRequest(savedRequest)
                     .signerEmail(signerDto.getEmail().trim().toLowerCase())
                     .signerName(signerDto.getName() != null && !signerDto.getName().isBlank() ? signerDto.getName().trim() : signerDto.getEmail().trim())
                     .phone(signerDto.getPhone())
+                    .deliveryChannel(delivery)
+                    .verificationMethod(verification)
                     .signOrder(signerDto.getOrder() != null ? signerDto.getOrder() : order++)
                     .status(SignerInvite.Status.PENDING)
                     .signingToken(UUID.randomUUID())
@@ -152,12 +165,22 @@ public class SigningService {
             SignerInvite firstSigner = invites.get(0);
             firstSigner.setStatus(SignerInvite.Status.INVITED);
             signerInviteRepository.save(firstSigner);
-            emailService.sendSigningInvite(savedRequest, firstSigner);
+            if (!"WHATSAPP".equalsIgnoreCase(firstSigner.getDeliveryChannel())) {
+                emailService.sendSigningInvite(savedRequest, firstSigner);
+            }
+            if (firstSigner.getPhone() != null && !firstSigner.getPhone().isBlank() && !"EMAIL".equalsIgnoreCase(firstSigner.getDeliveryChannel())) {
+                whatsAppService.sendSigningInviteWhatsApp(firstSigner, savedRequest.getTitle(), baseUrl);
+            }
         } else {
             for (SignerInvite inv : invites) {
                 inv.setStatus(SignerInvite.Status.INVITED);
                 signerInviteRepository.save(inv);
-                emailService.sendSigningInvite(savedRequest, inv);
+                if (!"WHATSAPP".equalsIgnoreCase(inv.getDeliveryChannel())) {
+                    emailService.sendSigningInvite(savedRequest, inv);
+                }
+                if (inv.getPhone() != null && !inv.getPhone().isBlank() && !"EMAIL".equalsIgnoreCase(inv.getDeliveryChannel())) {
+                    whatsAppService.sendSigningInviteWhatsApp(inv, savedRequest.getTitle(), baseUrl);
+                }
             }
         }
 
@@ -529,7 +552,12 @@ public class SigningService {
                 SignerInvite next = nextSigner.get();
                 next.setStatus(SignerInvite.Status.INVITED);
                 signerInviteRepository.save(next);
-                emailService.sendSigningInvite(signingRequest, next);
+                if (!"WHATSAPP".equalsIgnoreCase(next.getDeliveryChannel())) {
+                    emailService.sendSigningInvite(signingRequest, next);
+                }
+                if (next.getPhone() != null && !next.getPhone().isBlank() && !"EMAIL".equalsIgnoreCase(next.getDeliveryChannel())) {
+                    whatsAppService.sendSigningInviteWhatsApp(next, signingRequest.getTitle(), baseUrl);
+                }
             }
         }
 
@@ -608,10 +636,94 @@ public class SigningService {
             );
 
             emailService.sendDocumentCompletedNotification(document);
+            String verifyUrl = baseUrl + "/#/verify?hash=" + finalHash;
+            for (SignerInvite inv : allSigners) {
+                if (inv.getPhone() != null && !inv.getPhone().isBlank() && !"EMAIL".equalsIgnoreCase(inv.getDeliveryChannel())) {
+                    whatsAppService.sendDocumentCompletedWhatsApp(inv, document.getTitle(), verifyUrl);
+                }
+            }
             log.info("Document {} fully completed and sealed with final hash: {}", document.getId(), finalHash);
         } catch (Exception e) {
             log.error("Failed to seal document {}", document.getId(), e);
         }
+    }
+
+    @Transactional
+    public Map<String, Object> generateAndSendWhatsAppOtp(UUID token, String ipAddress, String userAgent) {
+        SignerInvite invite = signerInviteRepository.findBySigningToken(token)
+                .orElseThrow(() -> new InvalidTokenException("Invalid token"));
+
+        if (invite.getPhone() == null || invite.getPhone().isBlank()) {
+            throw new IllegalArgumentException("No mobile phone number is registered for this signer. Please contact the sender.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        String otp;
+        if (invite.getOtpCode() != null && invite.getOtpExpiry() != null && invite.getOtpExpiry().isAfter(now)) {
+            if (invite.getOtpExpiry().isAfter(now.plusMinutes(9).plusSeconds(15))) {
+                otp = invite.getOtpCode();
+            } else {
+                otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+            }
+        } else {
+            otp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        }
+
+        invite.setOtpCode(otp);
+        invite.setOtpExpiry(now.plusMinutes(10));
+        invite.setOtpAttempts(0);
+        signerInviteRepository.save(invite);
+
+        Map<String, Object> waResult = whatsAppService.sendVerificationOtpWhatsApp(invite, otp);
+
+        auditService.logAction(
+                invite.getSigningRequest().getDocument(),
+                invite,
+                null,
+                "signer.whatsapp_otp_requested",
+                "SIGNER_INVITE",
+                invite.getId().toString(),
+                "WhatsApp verification OTP generated & dispatched for " + invite.getSignerName() + " (" + invite.getPhone() + ")",
+                ipAddress,
+                userAgent
+        );
+
+        return waResult;
+    }
+
+    @Transactional
+    public Map<String, Object> resendWhatsAppSigningInvite(UUID inviteId, User user, String ipAddress, String userAgent) {
+        SignerInvite invite = signerInviteRepository.findById(inviteId)
+                .orElseThrow(() -> new IllegalArgumentException("Signer invite not found with ID: " + inviteId));
+
+        Document doc = invite.getSigningRequest().getDocument();
+        if (user != null && !user.getRole().name().equals("ADMIN") && !doc.getUploadedBy().getId().equals(user.getId())) {
+            throw new IllegalStateException("You are not authorized to resend invites for this document");
+        }
+
+        if (invite.getStatus() == SignerInvite.Status.SIGNED) {
+            throw new IllegalStateException("This signer has already completed electronic signing");
+        }
+
+        if (invite.getPhone() == null || invite.getPhone().isBlank()) {
+            throw new IllegalArgumentException("No phone number registered for this signer.");
+        }
+
+        Map<String, Object> result = whatsAppService.sendSigningInviteWhatsApp(invite, doc.getTitle(), baseUrl);
+
+        auditService.logAction(
+                doc,
+                invite,
+                user,
+                "signer.whatsapp_invite_resent",
+                "SIGNER_INVITE",
+                invite.getId().toString(),
+                "WhatsApp signing invitation resent to: " + invite.getPhone(),
+                ipAddress,
+                userAgent
+        );
+
+        return result;
     }
 }
 

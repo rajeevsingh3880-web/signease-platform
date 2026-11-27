@@ -68,6 +68,14 @@ public class SignerInvite {
     @Builder.Default
     private String signatureMethod = "CONTRACT_LAW_ESIGN";
 
+    @Column(name = "delivery_channel")
+    @Builder.Default
+    private String deliveryChannel = "EMAIL_AND_WHATSAPP";
+
+    @Column(name = "verification_method")
+    @Builder.Default
+    private String verificationMethod = "WHATSAPP_OTP";
+
     @Column(name = "decline_reason", columnDefinition = "TEXT")
     private String declineReason;
 
