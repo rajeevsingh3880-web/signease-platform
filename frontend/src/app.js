@@ -333,7 +333,7 @@ async function render() {
                     <a class="sidebar-nav-link ${path === 'reports' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/reports')">
                         <i class="fa-solid fa-file-csv me-2 text-primary"></i> ${t('reportGeneration')}
                     </a>
-                    ${state.user?.role === 'ADMIN' ? `
+                    ${['ADMIN', 'MASTER_ADMIN', 'COMPANY_ADMIN'].includes(state.user?.role) ? `
                         <a class="sidebar-nav-link text-danger ${path === 'admin' ? 'active' : ''}" href="javascript:void(0)" onclick="window.navigateFromSidebar('#/admin')">
                             <i class="fa-solid fa-shield me-2"></i> ${t('admin')}
                         </a>
@@ -3946,19 +3946,20 @@ async function renderVerify(container, initialHash = '') {
 }
 
 // 11. Admin Console View
+// Admin User Management Component
 async function renderAdmin(container) {
-    if (state.user?.role !== 'ADMIN') {
+    if (!['ADMIN', 'MASTER_ADMIN', 'COMPANY_ADMIN'].includes(state.user?.role)) {
         container.innerHTML = `
             <div class="container py-5 text-center" style="max-width: 540px;">
-                <div class="card border-0 shadow-sm p-4 p-md-5 bg-white text-center">
+                <div class="card border-0 shadow-sm p-4 p-md-5 bg-card text-center rounded-4">
                     <i class="fa-solid fa-lock text-danger fs-1 mb-3"></i>
                     <h4 class="fw-bold mb-2">Administrator Access Required</h4>
                     <p class="text-muted small mb-4">
                         You are currently signed in as <strong>${state.user?.fullName || 'User'}</strong> (Role: ${state.user?.role || 'SIGNER'}).
-                        Only accounts with the <strong>ADMIN</strong> role can access user administration and system audit ledgers.
+                        Only accounts with <strong>MASTER_ADMIN</strong>, <strong>COMPANY_ADMIN</strong>, or <strong>ADMIN</strong> roles can access user administration.
                     </p>
                     <div class="d-flex justify-content-center gap-2">
-                        <button id="switchAdminBtn" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-shield me-1"></i> Log in as Admin (admin@esign.com)</button>
+                        <button id="switchAdminBtn" class="btn btn-primary btn-sm"><i class="fa-solid fa-user-shield me-1"></i> Log in as Master Admin (masteradmin@esign.com)</button>
                         <a href="#/dashboard" class="btn btn-outline-secondary btn-sm">Back to Dashboard</a>
                     </div>
                 </div>
@@ -3966,11 +3967,11 @@ async function renderAdmin(container) {
         `;
         document.getElementById('switchAdminBtn').onclick = async () => {
             try {
-                const auth = await api.login('admin@esign.com', 'admin123');
+                const auth = await api.login('masteradmin@esign.com', 'admin123');
                 api.setToken(auth.token);
                 api.setUser(auth);
                 state.user = auth;
-                showToast('Switched to Administrator session!');
+                showToast('Switched to Master Administrator session!');
                 renderAdmin(container);
             } catch (err) {
                 showToast(err.message, 'danger');
@@ -3988,19 +3989,19 @@ async function renderAdmin(container) {
             <div class="container-fluid px-lg-4 py-4">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div>
-                        <h4 class="fw-bold mb-1"><i class="fa-solid fa-users-gear text-danger me-2"></i> User Administration</h4>
-                        <p class="text-muted small mb-0">Manage users, organizations, access privileges, and activation states.</p>
+                        <h4 class="fw-bold mb-1"><i class="fa-solid fa-users-gear text-danger me-2"></i> User &amp; Role Administration</h4>
+                        <p class="text-muted small mb-0">Manage SaaS institution levels: Master Admin, Company Admin, Customer Admin, and Client accounts.</p>
                     </div>
                 </div>
 
-                <div class="card border-0 bg-white shadow-sm">
+                <div class="card border-0 bg-card shadow-sm rounded-4">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light small text-muted text-uppercase">
                                 <tr>
                                     <th class="ps-3">User</th>
                                     <th>Organization</th>
-                                    <th>Role</th>
+                                    <th>Role &amp; Permissions</th>
                                     <th>Status</th>
                                     <th>Created</th>
                                     <th class="text-end pe-3">Action</th>
@@ -4012,9 +4013,19 @@ async function renderAdmin(container) {
                                         <td class="ps-3">
                                             <div class="fw-bold">${u.fullName}</div>
                                             <div class="small text-muted">${u.email}</div>
+                                            ${u.phone ? `<div class="small text-muted font-monospace"><i class="fa-brands fa-whatsapp text-success me-1"></i>${u.phone}</div>` : ''}
                                         </td>
-                                        <td class="small">${u.organization}</td>
-                                        <td><span class="badge ${u.role === 'ADMIN' ? 'bg-danger-subtle text-danger' : 'bg-primary-subtle text-primary'}">${u.role}</span></td>
+                                        <td class="small fw-semibold text-primary">${u.organization}</td>
+                                        <td>
+                                            <select class="form-select form-select-sm role-select fw-semibold" data-id="${u.id}" style="width: 170px; font-size: 0.8rem;">
+                                                <option value="MASTER_ADMIN" ${u.role === 'MASTER_ADMIN' ? 'selected' : ''}>Master Admin</option>
+                                                <option value="COMPANY_ADMIN" ${u.role === 'COMPANY_ADMIN' ? 'selected' : ''}>Company Admin</option>
+                                                <option value="CUSTOMER_ADMIN" ${u.role === 'CUSTOMER_ADMIN' ? 'selected' : ''}>Customer Admin</option>
+                                                <option value="CLIENT" ${u.role === 'CLIENT' ? 'selected' : ''}>Client</option>
+                                                <option value="ADMIN" ${u.role === 'ADMIN' ? 'selected' : ''}>Admin</option>
+                                                <option value="SIGNER" ${u.role === 'SIGNER' ? 'selected' : ''}>Signer</option>
+                                            </select>
+                                        </td>
                                         <td><span class="badge ${u.enabled ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary'}">${u.enabled ? 'Active' : 'Disabled'}</span></td>
                                         <td class="small text-muted">${new Date(u.createdAt).toLocaleDateString('en-IN')}</td>
                                         <td class="text-end pe-3">
@@ -4034,6 +4045,17 @@ async function renderAdmin(container) {
                 await api.toggleUserStatus(b.dataset.id);
                 showToast('User status updated');
                 renderAdmin(container);
+            };
+        });
+
+        document.querySelectorAll('.role-select').forEach(sel => {
+            sel.onchange = async () => {
+                try {
+                    await api.updateUserRole(sel.dataset.id, sel.value);
+                    showToast('Role updated to ' + sel.value, 'success');
+                } catch (e) {
+                    showToast(e.message, 'danger');
+                }
             };
         });
     } catch (err) {

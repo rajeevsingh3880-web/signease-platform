@@ -17,7 +17,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/admin")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'MASTER_ADMIN', 'COMPANY_ADMIN')")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*")
 @Transactional(readOnly = true)
@@ -42,6 +42,7 @@ public class ApiAdminController {
     }
 
     @PostMapping("/users/{id}/toggle-status")
+    @Transactional
     public ResponseEntity<?> toggleUserStatus(@PathVariable("id") UUID id) {
         User target = userRepository.findById(id).orElseThrow();
         target.setEnabled(!target.getEnabled());
@@ -51,6 +52,28 @@ public class ApiAdminController {
                 "message", "User " + target.getEmail() + " is now " + (target.getEnabled() ? "Active" : "Disabled"),
                 "enabled", target.getEnabled()
         ));
+    }
+
+    @PostMapping("/users/{id}/role")
+    @Transactional
+    public ResponseEntity<?> updateUserRole(@PathVariable("id") UUID id, @RequestBody Map<String, String> body) {
+        String roleStr = body.get("role");
+        if (roleStr == null || roleStr.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Role is required"));
+        }
+        User target = userRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("User not found"));
+        try {
+            User.Role newRole = User.Role.valueOf(roleStr.trim().toUpperCase());
+            target.setRole(newRole);
+            userRepository.save(target);
+            return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "User " + target.getEmail() + " role updated to " + newRole.name(),
+                    "role", newRole.name()
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid role: " + roleStr));
+        }
     }
 
     @GetMapping("/audit-logs")

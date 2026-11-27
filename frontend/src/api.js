@@ -284,6 +284,13 @@ export const api = {
         });
     },
 
+    updateUserRole(id, role) {
+        return this.request(`/admin/users/${id}/role`, {
+            method: 'POST',
+            body: JSON.stringify({ role })
+        });
+    },
+
     getAdminAuditLogs(page = 0, size = 30) {
         return this.request(`/admin/audit-logs?page=${page}&size=${size}`);
     },
